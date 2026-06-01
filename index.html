@@ -137,8 +137,22 @@
           <h3>因子排行榜</h3>
           <p style="color:#666;font-size:12px">所有因子按<b>综合得分</b>排名。综合分 = 因子有效性(50%) + 实战业绩(50%)，
             各分项指标在全因子截面标准化(z-score)后加权；方向已统一（数值越大越好）。</p>
-          <p style="color:#999;font-size:11px;margin-top:2px">业绩口径：top-30 等权、月末调仓、0.2% 双边成本，2020-01 ~ 2025-12。
-            有效性：RankIC 均值 + IC_IR（信号稳定性）。点击列头可改排序，勾选因子后可一键带入对比 / 合成。</p>
+          <p style="color:#999;font-size:11px;margin-top:2px">业绩口径：top-30 等权、月末调仓、0.2% 双边成本。
+            有效性：RankIC 均值 + IC_IR（信号稳定性）。点击列头可改排序（如点“最大回撤”看最抗跌、点“年化”看最赚钱），勾选因子后可一键带入对比 / 合成。</p>
+          <div style="margin-top:8px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            <span style="color:#666;font-size:12px">时间区间：</span>
+            <button class="rkrange-btn active" data-range="all">全部</button>
+            <button class="rkrange-btn" data-range="3y">近3年</button>
+            <button class="rkrange-btn" data-range="1y">近1年</button>
+            <button class="rkrange-btn" data-range="2025">2025</button>
+            <button class="rkrange-btn" data-range="2024">2024</button>
+            <button class="rkrange-btn" data-range="2023">2023</button>
+            <span style="color:#999;font-size:11px;margin-left:8px">自定义：</span>
+            <select id="rk-start" style="font-size:12px;padding:2px;border:1px solid #ccc;border-radius:3px"></select>
+            <span style="color:#999;font-size:11px">~</span>
+            <select id="rk-end" style="font-size:12px;padding:2px;border:1px solid #ccc;border-radius:3px"></select>
+            <span id="rk-range-info" style="color:#888;font-size:11px;margin-left:4px"></span>
+          </div>
           <div style="margin-top:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
             <span id="rank-sel-count" style="color:#666;font-size:12px">已选 0 个</span>
             <button id="rank-to-compare" class="cpsn-btn" style="border-color:#1a4d80;color:#1a4d80">→ 加入多因子对比</button>

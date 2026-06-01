@@ -1004,22 +1004,24 @@ const RANK_COLS = [
   { key: "icir",      label: "IC_IR",   fmt: v => v.toFixed(2) },
 ];
 
-let _rankState = { rows: null, sortKey: "score", desc: true, checked: new Set() };
+let _rankState = { rows: null, sortKey: "score", desc: true, checked: new Set(),
+                   range: "all", start: null, end: null };
 
 let _rankBarBound = false;
 async function renderRanking() {
   const box = document.getElementById("rank-table");
-  if (!_rankBarBound) {
-    document.getElementById("rank-to-compare").onclick = () => rankSendTo("compare");
-    document.getElementById("rank-to-compose").onclick = () => rankSendTo("compose");
-    document.getElementById("rank-clear-sel").onclick = () => { _rankState.checked.clear(); drawRankTable(); };
-    _rankBarBound = true;
-  }
   try {
-    await ensureDB();
+    await ensureDB();   // 先确保 DuckDB 就绪，区间下拉/排名查询都依赖它
+    if (!_rankBarBound) {
+      document.getElementById("rank-to-compare").onclick = () => rankSendTo("compare");
+      document.getElementById("rank-to-compose").onclick = () => rankSendTo("compose");
+      document.getElementById("rank-clear-sel").onclick = () => { _rankState.checked.clear(); drawRankTable(); };
+      await initRankRangeControls();
+      _rankBarBound = true;
+    }
     if (!_rankState.rows) {
       box.innerHTML = `<div class="empty">计算中…</div>`;
-      _rankState.rows = await computeRanking();
+      _rankState.rows = await computeRanking(_rankState.start, _rankState.end);
     }
     drawRankTable();
   } catch (err) {
@@ -1028,25 +1030,98 @@ async function renderRanking() {
   }
 }
 
-async function computeRanking() {
-  // 1) top-30 回测序列（每因子按月排序）→ JS 算年化/夏普/回撤/胜率（复用 computeMetrics）
+// 所有可选月份（YYYY-MM），升序。用于自定义起止下拉 + 区间预设换算。
+let _rankMonths = null;
+async function rankMonths() {
+  if (_rankMonths) return _rankMonths;
+  const res = await state.db.query(
+    `SELECT DISTINCT strftime(trade_date,'%Y-%m') m FROM preset_backtest ORDER BY m`);
+  _rankMonths = res.toArray().map(r => r.m);
+  return _rankMonths;
+}
+
+// 把预设区间换算成 [startMonth, endMonth]（含端点，YYYY-MM）
+function rangeToBounds(range, months) {
+  const last = months[months.length - 1];
+  if (range === "all") return [months[0], last];
+  if (range === "1y") return [months[Math.max(0, months.length - 12)], last];
+  if (range === "3y") return [months[Math.max(0, months.length - 36)], last];
+  if (/^\d{4}$/.test(range)) return [`${range}-01`, `${range}-12`];
+  return [months[0], last];
+}
+
+async function initRankRangeControls() {
+  const months = await rankMonths();
+  // 填充自定义起止下拉
+  const startSel = document.getElementById("rk-start");
+  const endSel = document.getElementById("rk-end");
+  startSel.innerHTML = months.map(m => `<option value="${m}">${m}</option>`).join("");
+  endSel.innerHTML = months.map(m => `<option value="${m}">${m}</option>`).join("");
+  startSel.value = months[0];
+  endSel.value = months[months.length - 1];
+  _rankState.start = months[0];
+  _rankState.end = months[months.length - 1];
+  // 预设区间按钮
+  document.querySelectorAll(".rkrange-btn").forEach(b => {
+    b.onclick = async () => {
+      document.querySelectorAll(".rkrange-btn").forEach(x => x.classList.remove("active"));
+      b.classList.add("active");
+      _rankState.range = b.dataset.range;
+      const [s, e] = rangeToBounds(b.dataset.range, months);
+      _rankState.start = s; _rankState.end = e;
+      startSel.value = s; endSel.value = e;
+      await recomputeRank();
+    };
+  });
+  // 自定义下拉
+  const onCustom = async () => {
+    document.querySelectorAll(".rkrange-btn").forEach(x => x.classList.remove("active"));
+    _rankState.range = "custom";
+    let s = startSel.value, e = endSel.value;
+    if (s > e) { e = s; endSel.value = s; }   // 防起点晚于终点
+    _rankState.start = s; _rankState.end = e;
+    await recomputeRank();
+  };
+  startSel.onchange = onCustom;
+  endSel.onchange = onCustom;
+}
+
+async function recomputeRank() {
+  const box = document.getElementById("rank-table");
+  box.innerHTML = `<div class="empty">按区间重新计算中…</div>`;
+  _rankState.rows = await computeRanking(_rankState.start, _rankState.end);
+  drawRankTable();
+}
+
+// startMonth/endMonth: 'YYYY-MM'（含端点）；null 表示不限。
+async function computeRanking(startMonth, endMonth) {
+  // 区间过滤条件（作用于 trade_date / month）
+  const btWhere = ["top_n = 30"];
+  const icWhere = [];
+  if (startMonth) { btWhere.push(`strftime(trade_date,'%Y-%m') >= '${startMonth}'`); icWhere.push(`strftime(month,'%Y-%m') >= '${startMonth}'`); }
+  if (endMonth)   { btWhere.push(`strftime(trade_date,'%Y-%m') <= '${endMonth}'`);   icWhere.push(`strftime(month,'%Y-%m') <= '${endMonth}'`); }
+  const icWhereSql = icWhere.length ? "WHERE " + icWhere.join(" AND ") : "";
+
+  // 1) top-30 区间内的月度收益 → 在区间内重建 NAV（从 1.0 起），再算年化/夏普/回撤/胜率
   const btRes = await state.db.query(`
-    SELECT factor_code, port_ret, nav FROM preset_backtest
-    WHERE top_n = 30 ORDER BY factor_code, trade_date
+    SELECT factor_code, port_ret FROM preset_backtest
+    WHERE ${btWhere.join(" AND ")} ORDER BY factor_code, trade_date
   `);
   const series = new Map();   // code → {rets, navs}
   for (const r of btRes.toArray()) {
     if (!series.has(r.factor_code)) series.set(r.factor_code, { rets: [], navs: [] });
     const o = series.get(r.factor_code);
-    o.rets.push(r.port_ret); o.navs.push(r.nav);
+    o.rets.push(r.port_ret);
+    const prev = o.navs.length ? o.navs[o.navs.length - 1] : 1;
+    o.navs.push(prev * (1 + r.port_ret));   // 区间内重建净值，保证回撤/年化口径对齐区间
   }
-  // 2) IC 统计：RankIC 均值 + IC_IR（全样本 = RankIC均值 / RankIC标准差 × √12，年化）
+  // 2) IC 统计：区间内 RankIC 均值 + IC_IR（= RankIC均值 / RankIC标准差 × √12，年化）
   const icRes = await state.db.query(`
     SELECT factor_code,
            AVG(rank_ic) AS rank_ic_mean,
            STDDEV_SAMP(rank_ic) AS rank_ic_std,
            COUNT(rank_ic) AS n
-    FROM factor_ic GROUP BY factor_code
+    FROM factor_ic ${icWhereSql} GROUP BY factor_code
   `);
   const icStat = new Map();
   for (const r of icRes.toArray()) {
@@ -1064,6 +1139,7 @@ async function computeRanking() {
       code: f.code, name_cn: f.name_cn, l1: f.l1, l2: f.l2,
       annual: m.annual, sharpe: m.sharpe, mdd: m.mdd, winRate: m.winRate,
       rankIC: ic.rankIC, icir: ic.icir,
+      nMonths: s.rets.length,
     });
   }
   // 4) 综合分：各分项在全因子截面 z-score 后加权。
@@ -1100,6 +1176,12 @@ function makeZScorer(rows) {
 function drawRankTable() {
   const box = document.getElementById("rank-table");
   const { sortKey, desc } = _rankState;
+  // 区间提示 + 样本月数
+  const info = document.getElementById("rk-range-info");
+  if (info) {
+    const nMonths = _rankState.rows[0]?.nMonths;
+    info.textContent = `区间 ${_rankState.start} ~ ${_rankState.end}` + (nMonths ? `（${nMonths} 个月）` : "");
+  }
   // mdd 排序特殊：值是负数，"越大(越接近0)越好"，默认降序即可；其它指标同理降序=好在前
   const sorted = [..._rankState.rows].sort((a, b) => {
     const av = a[sortKey], bv = b[sortKey];
