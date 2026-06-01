@@ -364,8 +364,53 @@ async function renderTopStocks(code) {
       <h4 style="font-size:12px;color:#444;margin:0 0 4px 0">选出股票的行业分布（申万一级，按只数降序）</h4>
       <div id="top-industry-chart" style="width:100%"></div>
     </div>`;
+  // 市值分布图容器（按市值分档，直观看选股偏大盘还是小盘）
+  html += `<div style="margin-top:14px">
+      <h4 style="font-size:12px;color:#444;margin:0 0 4px 0">选出股票的市值分布（按总市值分档）</h4>
+      <div id="top-mktcap-chart" style="width:100%;height:170px"></div>
+    </div>`;
   target.innerHTML = html;
   renderTopIndustryChart(rows, N);
+  renderTopMarketCapChart(rows);
+}
+
+// 市值分档（亿元）：小盘 <50 / 中盘 50-200 / 大盘 200-1000 / 超大盘 >1000
+const MKTCAP_BINS = [
+  { label: "小盘 <50亿", lo: 0, hi: 50 },
+  { label: "中盘 50-200亿", lo: 50, hi: 200 },
+  { label: "大盘 200-1000亿", lo: 200, hi: 1000 },
+  { label: "超大盘 >1000亿", lo: 1000, hi: Infinity },
+];
+let topMktcapChart = null;
+function renderTopMarketCapChart(rows) {
+  const div = document.getElementById("top-mktcap-chart");
+  if (!div) return;
+  if (topMktcapChart) { topMktcapChart.dispose(); topMktcapChart = null; }
+  // market_cap 单位万元 → 亿元
+  const counts = MKTCAP_BINS.map(() => 0);
+  let known = 0;
+  for (const r of rows) {
+    if (r.market_cap === null || r.market_cap === undefined) continue;
+    const yi = Number(r.market_cap) / 1e4;
+    const i = MKTCAP_BINS.findIndex(b => yi >= b.lo && yi < b.hi);
+    if (i >= 0) { counts[i]++; known++; }
+  }
+  const total = known || 1;
+  topMktcapChart = echarts.init(div);
+  topMktcapChart.setOption({
+    grid: { left: 110, right: 44, top: 8, bottom: 24 },
+    tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+               formatter: p => `${p[0].name}：${p[0].value} 只（占 ${(p[0].value / total * 100).toFixed(0)}%）` },
+    xAxis: { type: "value", minInterval: 1, axisLabel: { fontSize: 10 } },
+    // 倒序让"小盘"在最上方，符合从小到大阅读
+    yAxis: { type: "category", data: MKTCAP_BINS.map(b => b.label).reverse(), axisLabel: { fontSize: 11 } },
+    series: [{
+      type: "bar", data: counts.slice().reverse(), barMaxWidth: 22,
+      itemStyle: { color: "#3a7d44", borderRadius: [0, 3, 3, 0] },
+      label: { show: true, position: "right", fontSize: 10, color: "#666",
+               formatter: p => p.value ? `${p.value}（${(p.value / total * 100).toFixed(0)}%）` : "" },
+    }],
+  });
 }
 
 let topIndustryChart = null;
