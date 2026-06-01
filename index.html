@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>因子库 v0.1</title>
-  <link rel="stylesheet" href="styles.css?v=20260601173051">
+  <link rel="stylesheet" href="styles.css?v=20260601173759">
   <link rel="stylesheet" href="vendor/katex.min.css">
   <script type="importmap">
     {
@@ -175,6 +175,26 @@
             <span id="rank-tag-filters"></span>
             <span id="rank-tag-clear" style="display:none;cursor:pointer;color:#c14545;font-size:11px;margin-left:4px">清除筛选</span>
           </div>
+          <details style="margin-top:6px">
+            <summary style="cursor:pointer;color:#1a4d80;font-size:11px">标签是怎么判定的？（点击展开口径）</summary>
+            <div style="color:#666;font-size:11px;line-height:1.7;margin-top:6px;padding:8px 10px;background:#f7f9fb;border:1px solid #e6ebf0;border-radius:4px">
+              <p style="margin:0 0 6px 0">每个因子贴 2 个标签：<b>市场环境</b>维度 + <b>时效</b>维度，均按 top-30 组合的全样本回测/IC 自动判定。</p>
+              <p style="margin:0 0 3px 0"><b>市场环境</b>（看在不同行情下相对其他因子的超额强弱）：先按沪深300<b>滚动 3 个月涨跌</b>把月份分为牛（&gt;+5%）/熊（&lt;-5%）/震荡；算因子在三种环境的<b>月均超额收益</b>（组合−沪深300），并在 46 个因子间各自标准化（z-score）；取最高者：</p>
+              <ul style="margin:0 0 6px 0;padding-left:18px">
+                <li><span class="ftag ftag-牛市进攻型">牛市进攻型</span> 牛市超额相对其他因子最突出</li>
+                <li><span class="ftag ftag-熊市防御型">熊市防御型</span> 熊市超额相对最突出（抗跌/逆势）</li>
+                <li><span class="ftag ftag-震荡占优型">震荡占优型</span> 震荡市超额相对最突出</li>
+                <li><span class="ftag ftag-全天候型">全天候型</span> 三种环境都不突出（z 均&lt;0.5），不挑行情</li>
+              </ul>
+              <p style="margin:0 0 3px 0"><b>时效</b>（看因子选股能力近期是否还在，用 RankIC）：比较<b>近 12 个月</b> RankIC 均值与<b>全样本</b> RankIC 均值之差（阈值 ±0.012）：</p>
+              <ul style="margin:0;padding-left:18px">
+                <li><span class="ftag ftag-长期稳定型">长期稳定型</span> 长期有效，近期没明显掉队</li>
+                <li><span class="ftag ftag-近期转强">近期转强</span> 近 12 月 RankIC 比全样本高 0.012 以上</li>
+                <li><span class="ftag ftag-近期失效">近期失效</span> 近 12 月 RankIC 比全样本低 0.012 以上</li>
+                <li><span class="ftag ftag-持续低效">持续低效</span> 全样本与近期 RankIC 都接近 0（基本无选股能力）</li>
+              </ul>
+            </div>
+          </details>
           <div style="margin-top:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
             <span id="rank-sel-count" style="color:#666;font-size:12px">已选 0 个</span>
             <button id="rank-to-compare" class="cpsn-btn" style="border-color:#1a4d80;color:#1a4d80">→ 加入多因子对比</button>
@@ -190,6 +210,6 @@
 
   <script src="vendor/echarts.min.js"></script>
   <script src="vendor/katex.min.js"></script>
-  <script type="module" src="app.js?v=20260601173051"></script>
+  <script type="module" src="app.js?v=20260601173759"></script>
 </body>
 </html>
