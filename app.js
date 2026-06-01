@@ -1102,6 +1102,8 @@ const RANK_COLS = [
   { key: "winRate",   label: "月胜率",  fmt: v => (v * 100).toFixed(0) + "%" },
   { key: "rankIC",    label: "RankIC均值", fmt: v => v.toFixed(3) },
   { key: "icir",      label: "IC_IR",   fmt: v => v.toFixed(2) },
+  { key: "medCap",    label: "中位市值(亿)", fmt: v => v === null ? "—" : Math.round(v).toLocaleString() },
+  { key: "capStyle",  label: "市值风格", lcol: true, fmt: v => v },
   { key: "top3ind",   label: "前三行业(最新选股)", lcol: true, fmt: v => v },
 ];
 
@@ -1271,6 +1273,39 @@ async function factorTop3Industries() {
   return _top3IndCache;
 }
 
+// 每因子 top-30 选股的市值特征（最新截面）：中位市值（亿）+ 主导分档。缓存只查一次。
+// 返回 Map: factor_code → { medCap:亿, style:"大盘"/... }
+let _mktCapCache = null;
+async function factorMarketCap() {
+  if (_mktCapCache) return _mktCapCache;
+  // 取每因子 top-30 的市值（万元），JS 端算中位 + 分档（market_cap 单位万元 → 亿元）
+  const res = await state.db.query(`
+    WITH ranked AS (
+      SELECT s.factor_code, d.market_cap AS mc,
+             ROW_NUMBER() OVER (PARTITION BY s.factor_code ORDER BY s.score DESC) AS rk
+      FROM factor_score s
+      JOIN stock_meta m USING(stock_code)
+      LEFT JOIN stock_descriptors d USING(stock_code)
+      WHERE s.score IS NOT NULL
+        AND COALESCE(m.is_st,FALSE)=FALSE AND COALESCE(m.is_active_latest,FALSE)=TRUE
+    )
+    SELECT factor_code, mc FROM ranked WHERE rk <= 30 AND mc IS NOT NULL
+  `);
+  const byF = new Map();
+  for (const r of res.toArray()) {
+    if (!byF.has(r.factor_code)) byF.set(r.factor_code, []);
+    byF.get(r.factor_code).push(Number(r.mc) / 1e4);   // → 亿元
+  }
+  const styleOf = (yi) => yi < 50 ? "小盘" : yi < 200 ? "中盘" : yi < 1000 ? "大盘" : "超大盘";
+  _mktCapCache = new Map();
+  for (const [code, arr] of byF) {
+    arr.sort((a, b) => a - b);
+    const med = arr[Math.floor(arr.length / 2)];
+    _mktCapCache.set(code, { medCap: med, style: styleOf(med) });
+  }
+  return _mktCapCache;
+}
+
 // startMonth/endMonth: 'YYYY-MM'（含端点）；null 表示不限。
 async function computeRanking(startMonth, endMonth) {
   // 区间过滤条件（作用于 trade_date / month）
@@ -1306,8 +1341,9 @@ async function computeRanking(startMonth, endMonth) {
     const ir = (r.rank_ic_std && r.rank_ic_std > 0) ? r.rank_ic_mean / r.rank_ic_std * Math.sqrt(12) : 0;
     icStat.set(r.factor_code, { rankIC: r.rank_ic_mean ?? 0, icir: ir });
   }
-  // 2.5) 每因子 top-30 选股的前三大申万一级行业（最新截面，与时间区间无关，故缓存只查一次）
+  // 2.5) 每因子 top-30 选股的前三行业 + 市值特征（最新截面，与时间区间无关，缓存只查一次）
   const ind3 = await factorTop3Industries();
+  const mcap = await factorMarketCap();
 
   // 3) 每因子汇总指标
   const rows = [];
@@ -1316,12 +1352,15 @@ async function computeRanking(startMonth, endMonth) {
     const m = s ? computeMetrics(s.rets, s.navs) : null;
     const ic = icStat.get(f.code) || { rankIC: 0, icir: 0 };
     if (!m) continue;
+    const mc = mcap.get(f.code);
     rows.push({
       code: f.code, name_cn: f.name_cn, l1: f.l1, l2: f.l2,
       annual: m.annual, sharpe: m.sharpe, mdd: m.mdd, winRate: m.winRate,
       rankIC: ic.rankIC, icir: ic.icir,
       nMonths: s.rets.length,
       top3ind: ind3.get(f.code) || "—",
+      medCap: mc ? mc.medCap : null,
+      capStyle: mc ? mc.style : "—",
     });
   }
   // 4) 综合分：各分项在全因子截面 z-score 后加权。
