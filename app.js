@@ -104,11 +104,8 @@ async function _initDB() {
     // 串行加载核心表（并发会让单线程/多线程 server 偶发 ERR_EMPTY_RESPONSE）。
     // factor_score 只 load 最新截面（前端只用这个，避免 25MB 长表全 load）。
     const t0 = performance.now();
-    await state.db.query(`
-      CREATE TABLE factor_score AS
-      SELECT * FROM read_parquet('${F_SCORE}')
-      WHERE trade_date = (SELECT MAX(trade_date) FROM read_parquet('${F_SCORE}'))
-    `);
+    // factor_score.parquet 已是最新单截面（06_export 已瘦身），直接读，不再 WHERE=MAX 二次扫文件
+    await state.db.query(`CREATE TABLE factor_score AS SELECT * FROM read_parquet('${F_SCORE}')`);
     await state.db.query(`CREATE TABLE stock_meta AS SELECT * FROM read_parquet('${F_META}')`);
     await state.db.query(`CREATE TABLE preset_backtest AS SELECT * FROM read_parquet('${F_BT}')`);
     await state.db.query(`CREATE TABLE factor_ic AS SELECT * FROM read_parquet('${F_IC}')`);
