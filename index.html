@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>因子库 v0.1</title>
-  <link rel="stylesheet" href="styles.css?v=20260601163020">
+  <link rel="stylesheet" href="styles.css?v=20260601164002">
   <link rel="stylesheet" href="vendor/katex.min.css">
   <script type="importmap">
     {
@@ -54,10 +54,6 @@
           <h3>因子详情</h3>
           <div class="empty">从左侧选择一个因子</div>
         </div>
-        <div class="panel" id="top-stocks">
-          <h3>Top 30 股票（最新月末截面）</h3>
-          <div class="empty">从左侧选择一个因子</div>
-        </div>
         <div class="panel">
           <h3 id="nav-title">组合净值（月末等权调仓，0.2% 双边成本）</h3>
           <div id="nav-chart"></div>
@@ -75,6 +71,10 @@
             <button class="scan-btn" data-metric="nav">期末净值</button>
           </div>
           <div id="scan-chart"></div>
+        </div>
+        <div class="panel" id="top-stocks">
+          <h3>Top 30 股票（最新月末截面）</h3>
+          <div class="empty">从左侧选择一个因子</div>
         </div>
       </div>
 
@@ -185,6 +185,6 @@
 
   <script src="vendor/echarts.min.js"></script>
   <script src="vendor/katex.min.js"></script>
-  <script type="module" src="app.js?v=20260601163020"></script>
+  <script type="module" src="app.js?v=20260601164002"></script>
 </body>
 </html>
