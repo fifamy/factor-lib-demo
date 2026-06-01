@@ -16,6 +16,8 @@ const state = {
   activeFactor: null,
   selectedNs: [30],        // 单因子模式：要对比的持仓数集合（至少 1 个）
   scanMetric: "annual",    // 指标-N 曲线的纵轴：annual / sharpe / mdd / nav
+  singleStart: null,       // 单因子回测区间起/止月（YYYY-MM）；null=不限
+  singleEnd: null,
   mode: "single",          // single | compare | compose
   compareFactors: [],      // 对比模式：[{code, n}]，每个因子可设不同持仓数
   compareDefaultN: 30,     // 新加入因子的默认持仓数
@@ -196,6 +198,7 @@ async function selectFactor(code) {
   try {
     const tAll = performance.now();
     await ensureDB();
+    await initSingleRangeControls();
     renderFactorDetail(meta);
     const tQ = performance.now();
     await Promise.all([
@@ -361,25 +364,31 @@ async function renderTopStocks(code) {
 
 async function renderNavChart(code) {
   const ns = state.selectedNs;
+  const rng = (state.singleStart || state.singleEnd)
+    ? `${state.singleStart || "起"}~${state.singleEnd || "今"}` : "全样本";
   document.getElementById("nav-title").textContent =
-    `${code} · 组合净值对比 top-[${ns.join(", ")}]（起点=1.0；2020-01~2025-12，月末等权，0.2%双边成本）`;
+    `${code} · 组合净值对比 top-[${ns.join(", ")}]（起点=1.0；${rng}，月末等权，0.2%双边成本）`;
 
   const chartDiv = document.getElementById("nav-chart");
   if (navChart) { navChart.dispose(); navChart = null; }
   chartDiv.innerHTML = "";
 
-  // 一次查出所选各 N 的净值序列
+  // 查所选各 N 在区间内的月度收益，区间内从 1.0 重建净值（口径对齐所选区间）
   const inList = ns.join(",");
   const res = await state.db.query(`
-    SELECT top_n, strftime(trade_date, '%Y-%m') AS dt, nav
+    SELECT top_n, strftime(trade_date, '%Y-%m') AS dt, port_ret
     FROM preset_backtest
     WHERE factor_code = '${code}' AND top_n IN (${inList})
+      ${rangeWhere(state.singleStart, state.singleEnd)}
     ORDER BY top_n, trade_date
   `);
   const byN = {};
   for (const r of res.toArray()) {
     if (!byN[r.top_n]) byN[r.top_n] = { dt: [], nav: [] };
-    byN[r.top_n].dt.push(r.dt); byN[r.top_n].nav.push(r.nav);
+    const o = byN[r.top_n];
+    o.dt.push(r.dt);
+    const prev = o.nav.length ? o.nav[o.nav.length - 1] : 1;
+    o.nav.push(prev * (1 + (r.port_ret ?? 0)));
   }
   // x 轴用第一个 N 的月份（各 N 月份一致）
   const x = (byN[ns[0]] || { dt: [] }).dt;
@@ -388,11 +397,10 @@ async function renderNavChart(code) {
   ns.forEach((n, i) => {
     const s = byN[n];
     if (!s) return;
-    const base = s.nav[0] || 1;
     series.push({
       name: `top${n}`,
       type: "line",
-      data: s.nav.map(v => v / base),   // rebase 到 1.0
+      data: s.nav,   // 已从 1.0 重建
       symbol: "none",
       color: STRAT_COLORS[i % STRAT_COLORS.length],   // legend 标记与线同色
       lineStyle: { width: 2 },
@@ -459,10 +467,8 @@ function computeMetrics(rets, navs) {
   return { annual, sharpe, mdd, winRate, navEnd, vol };
 }
 
-// 基准年化（用于超额计算），按因子回测区间对齐
-let _benchAnnualCache = null;
+// 基准年化（用于超额计算），按当前选定区间对齐（区间变 → 重算，不缓存跨区间）
 async function benchAnnuals() {
-  if (_benchAnnualCache) return _benchAnnualCache;
   const out = {};
   if (state.hasBenchmarks) {
     const r = await state.db.query(`
@@ -470,6 +476,7 @@ async function benchAnnuals() {
       WHERE index_code IN ('HS300','CSI800')
         AND trade_date BETWEEN (SELECT MIN(trade_date) FROM preset_backtest)
                            AND (SELECT MAX(trade_date) FROM preset_backtest)
+        ${rangeWhere(state.singleStart, state.singleEnd)}
       ORDER BY index_code, trade_date
     `);
     const g = {};
@@ -478,34 +485,38 @@ async function benchAnnuals() {
       if (arr.length >= 2) out[k] = Math.pow(arr[arr.length - 1] / arr[0], 12 / arr.length) - 1;
     }
   }
-  _benchAnnualCache = out;
   return out;
 }
 
 async function renderKpiTable(code) {
   const target = document.getElementById("kpi");
-  // 一次查所选各 N 的月收益
+  // 查所选各 N 在区间内的月收益，区间内重建净值（mdd/年化口径对齐区间）
   const res = await state.db.query(`
-    SELECT top_n, port_ret, nav FROM preset_backtest
+    SELECT top_n, port_ret FROM preset_backtest
     WHERE factor_code = '${code}' AND top_n IN (${state.selectedNs.join(",")})
+      ${rangeWhere(state.singleStart, state.singleEnd)}
     ORDER BY top_n, trade_date
   `);
   const byN = {};
   for (const r of res.toArray()) {
-    if (!byN[r.top_n]) byN[r.top_n] = { rets: [], navs: [] };
-    if (r.port_ret !== null) byN[r.top_n].rets.push(r.port_ret);
-    if (r.nav !== null) byN[r.top_n].navs.push(r.nav);
+    if (!byN[r.top_n]) byN[r.top_n] = { rets: [], navs: [1] };   // navs 以真实起点 1.0 开头，确保首月收益计入
+    if (r.port_ret !== null) {
+      const o = byN[r.top_n];
+      o.rets.push(r.port_ret);
+      o.navs.push(o.navs[o.navs.length - 1] * (1 + r.port_ret));
+    }
   }
   const ba = await benchAnnuals();
 
-  // 因子级 IC_IR（与 N 无关）
+  // 因子级 IC_IR（与 N 无关）：区间内 RankIC 均值 / 标准差 × √12（年化）
   const icRes = await state.db.query(`
-    SELECT ic_ir_12m FROM factor_ic
-    WHERE factor_code = '${code}' AND ic_ir_12m IS NOT NULL AND NOT ISNAN(ic_ir_12m)
-    ORDER BY month DESC LIMIT 1
+    SELECT AVG(rank_ic) m, STDDEV_SAMP(rank_ic) s, COUNT(rank_ic) n FROM factor_ic
+    WHERE factor_code = '${code}' AND NOT ISNAN(rank_ic)
+      ${rangeWhere(state.singleStart, state.singleEnd, "month")}
   `);
   const icRow = icRes.toArray()[0];
-  const icir = icRow && Number.isFinite(icRow.ic_ir_12m) ? Number(icRow.ic_ir_12m).toFixed(2) : "—";
+  const icir = (icRow && icRow.s > 0 && icRow.n >= 2)
+    ? (icRow.m / icRow.s * Math.sqrt(12)).toFixed(2) : "—";
 
   const pct = (v) => (v * 100).toFixed(1) + "%";
   const signed = (v) => (v >= 0 ? "+" : "") + (v * 100).toFixed(1) + "%";
@@ -535,6 +546,7 @@ async function renderKpiTable(code) {
       WHERE index_code IN ('HS300','CSI800','CSI500')
         AND trade_date BETWEEN (SELECT MIN(trade_date) FROM preset_backtest)
                            AND (SELECT MAX(trade_date) FROM preset_backtest)
+        ${rangeWhere(state.singleStart, state.singleEnd)}
       ORDER BY index_code, trade_date
     `);
     const bg = {};
@@ -563,7 +575,7 @@ async function renderKpiTable(code) {
       </tr></thead>
       <tbody>${rows}</tbody>
     </table>
-    <p style="color:#888;font-size:11px;margin-top:6px">因子 12 月 IC_IR：${icir}（与持仓数无关）</p>
+    <p style="color:#888;font-size:11px;margin-top:6px">区间内 RankIC IC_IR：${icir}（与持仓数无关）</p>
   `;
 }
 
@@ -577,15 +589,19 @@ async function renderNScan(code) {
   chartDiv.innerHTML = "";
 
   const res = await state.db.query(`
-    SELECT top_n, port_ret, nav FROM preset_backtest
+    SELECT top_n, port_ret FROM preset_backtest
     WHERE factor_code = '${code}'
+      ${rangeWhere(state.singleStart, state.singleEnd)}
     ORDER BY top_n, trade_date
   `);
   const byN = {};
   for (const r of res.toArray()) {
-    if (!byN[r.top_n]) byN[r.top_n] = { rets: [], navs: [] };
-    if (r.port_ret !== null) byN[r.top_n].rets.push(r.port_ret);
-    if (r.nav !== null) byN[r.top_n].navs.push(r.nav);
+    if (!byN[r.top_n]) byN[r.top_n] = { rets: [], navs: [1] };   // navs 以起点 1.0 开头
+    if (r.port_ret !== null) {
+      const o = byN[r.top_n];
+      o.rets.push(r.port_ret);
+      o.navs.push(o.navs[o.navs.length - 1] * (1 + r.port_ret));
+    }
   }
   const xs = Object.keys(byN).map(Number).sort((a, b) => a - b);
   const ys = xs.map(n => {
@@ -1048,6 +1064,57 @@ function rangeToBounds(range, months) {
   if (range === "3y") return [months[Math.max(0, months.length - 36)], last];
   if (/^\d{4}$/.test(range)) return [`${range}-01`, `${range}-12`];
   return [months[0], last];
+}
+
+// 生成回测区间的 SQL WHERE 片段（作用于 trade_date 列）。两端含端点；null 不限。
+function rangeWhere(startMonth, endMonth, col = "trade_date") {
+  const parts = [];
+  if (startMonth) parts.push(`strftime(${col},'%Y-%m') >= '${startMonth}'`);
+  if (endMonth) parts.push(`strftime(${col},'%Y-%m') <= '${endMonth}'`);
+  return parts.length ? " AND " + parts.join(" AND ") : "";
+}
+
+// 单因子回测区间选择器（与排行榜同款逻辑，作用于 state.singleStart/End）
+let _sgBound = false;
+async function initSingleRangeControls() {
+  if (_sgBound) return;
+  const months = await rankMonths();
+  const startSel = document.getElementById("sg-start");
+  const endSel = document.getElementById("sg-end");
+  startSel.innerHTML = months.map(m => `<option value="${m}">${m}</option>`).join("");
+  endSel.innerHTML = months.map(m => `<option value="${m}">${m}</option>`).join("");
+  startSel.value = months[0];
+  endSel.value = months[months.length - 1];
+  state.singleStart = null;   // 'all' 用 null 表示不限，避免无谓过滤
+  state.singleEnd = null;
+  document.querySelectorAll(".sgrange-btn").forEach(b => {
+    b.onclick = () => {
+      document.querySelectorAll(".sgrange-btn").forEach(x => x.classList.remove("active"));
+      b.classList.add("active");
+      const [s, e] = rangeToBounds(b.dataset.range, months);
+      startSel.value = s; endSel.value = e;
+      state.singleStart = (b.dataset.range === "all") ? null : s;
+      state.singleEnd = (b.dataset.range === "all") ? null : e;
+      updateSingleRangeInfo(s, e);
+      if (state.activeFactor) selectFactor(state.activeFactor);
+    };
+  });
+  const onCustom = () => {
+    document.querySelectorAll(".sgrange-btn").forEach(x => x.classList.remove("active"));
+    let s = startSel.value, e = endSel.value;
+    if (s > e) { e = s; endSel.value = s; }
+    state.singleStart = s; state.singleEnd = e;
+    updateSingleRangeInfo(s, e);
+    if (state.activeFactor) selectFactor(state.activeFactor);
+  };
+  startSel.onchange = onCustom;
+  endSel.onchange = onCustom;
+  _sgBound = true;
+}
+
+function updateSingleRangeInfo(s, e) {
+  const el = document.getElementById("sg-range-info");
+  if (el) el.textContent = `${s} ~ ${e}`;
 }
 
 async function initRankRangeControls() {

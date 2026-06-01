@@ -33,6 +33,23 @@
 
       <!-- 单因子视图 -->
       <div id="single-view">
+        <div class="panel" style="padding-top:8px;padding-bottom:8px">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            <span style="color:#666;font-size:12px">回测区间：</span>
+            <button class="sgrange-btn active" data-range="all">全部</button>
+            <button class="sgrange-btn" data-range="3y">近3年</button>
+            <button class="sgrange-btn" data-range="1y">近1年</button>
+            <button class="sgrange-btn" data-range="2025">2025</button>
+            <button class="sgrange-btn" data-range="2024">2024</button>
+            <button class="sgrange-btn" data-range="2023">2023</button>
+            <span style="color:#999;font-size:11px;margin-left:8px">自定义：</span>
+            <select id="sg-start" style="font-size:12px;padding:2px;border:1px solid #ccc;border-radius:3px"></select>
+            <span style="color:#999;font-size:11px">~</span>
+            <select id="sg-end" style="font-size:12px;padding:2px;border:1px solid #ccc;border-radius:3px"></select>
+            <span id="sg-range-info" style="color:#888;font-size:11px;margin-left:4px"></span>
+          </div>
+          <p style="color:#999;font-size:11px;margin:6px 0 0 0">区间影响净值/KPI/指标扫描（区间内重建净值）；“Top 30 股票”始终是最新月末截面。</p>
+        </div>
         <div class="panel" id="factor-detail">
           <h3>因子详情</h3>
           <div class="empty">从左侧选择一个因子</div>

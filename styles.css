@@ -28,10 +28,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "PingFa
 .mode-btn:last-child { border-radius: 0 5px 5px 0; }
 .mode-btn.active { background: #1a4d80; color: #fff; }
 
-.cmpn-btn, .cmpdef-btn, .cpsn-btn, .rkrange-btn { background: #fff; border: 1px solid #ccc; border-radius: 12px; padding: 2px 10px;
+.cmpn-btn, .cmpdef-btn, .cpsn-btn, .rkrange-btn, .sgrange-btn { background: #fff; border: 1px solid #ccc; border-radius: 12px; padding: 2px 10px;
             font-size: 11px; cursor: pointer; color: #555; }
-.cmpn-btn:hover, .cmpdef-btn:hover, .cpsn-btn:hover, .rkrange-btn:hover { border-color: #1a4d80; }
-.cmpn-btn.active, .cmpdef-btn.active, .cpsn-btn.active, .rkrange-btn.active { background: #1a4d80; color: #fff; border-color: #1a4d80; }
+.cmpn-btn:hover, .cmpdef-btn:hover, .cpsn-btn:hover, .rkrange-btn:hover, .sgrange-btn:hover { border-color: #1a4d80; }
+.cmpn-btn.active, .cmpdef-btn.active, .cpsn-btn.active, .rkrange-btn.active, .sgrange-btn.active { background: #1a4d80; color: #fff; border-color: #1a4d80; }
 #single-view, #compare-view, #compose-view, #filter-view, #ranking-view { display: flex; flex-direction: column; gap: 12px; }
 table.rank-table { width: 100%; border-collapse: collapse; font-size: 12px; }
 table.rank-table th { background: #f0f3f7; padding: 6px 8px; text-align: right; cursor: pointer; white-space: nowrap; user-select: none; border-bottom: 2px solid #d8dee6; }
