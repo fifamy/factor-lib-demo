@@ -1293,13 +1293,20 @@ function renderComposeControls() {
   });
 }
 
+let _composeLoadedOnce = false;
 async function renderCompose() {
   document.getElementById("cps-selected").textContent =
     state.composeFactors.length ? `（已选 ${state.composeFactors.length} 个因子）` : "";
   renderComposeControls();
+  // 首次进入合成需下载约 38MB 因子全历史数据，给明确提示（避免误以为卡死）
+  if (!_composeLoadedOnce && state.composeFactors.length > 0) {
+    document.getElementById("cps-stocks").innerHTML =
+      `<h3>合成 Top 股票</h3><div class="empty">首次加载合成数据（约 38MB），请稍候…</div>`;
+  }
   try {
     await ensureDB();
     await ensureComposeData();   // 懒加载合成专用大表
+    _composeLoadedOnce = true;
     if (!state.hasComposeData) {
       document.getElementById("cps-stocks").innerHTML =
         `<h3>合成 Top 股票</h3><div class="empty">合成数据未生成（需跑 scripts/09_export_compose_data.py）</div>`;
