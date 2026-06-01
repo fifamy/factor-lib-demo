@@ -359,7 +359,46 @@ async function renderTopStocks(code) {
     </tr>`;
   });
   html += "</tbody></table>";
+  // 行业分布图容器（用同一份 rows 的申万一级行业聚合，直观看选股集中在哪些行业）
+  html += `<div style="margin-top:14px">
+      <h4 style="font-size:12px;color:#444;margin:0 0 4px 0">选出股票的行业分布（申万一级，按只数降序）</h4>
+      <div id="top-industry-chart" style="width:100%"></div>
+    </div>`;
   target.innerHTML = html;
+  renderTopIndustryChart(rows, N);
+}
+
+let topIndustryChart = null;
+function renderTopIndustryChart(rows, N) {
+  const div = document.getElementById("top-industry-chart");
+  if (!div) return;
+  if (topIndustryChart) { topIndustryChart.dispose(); topIndustryChart = null; }
+  // 按申万一级行业聚合只数
+  const cnt = {};
+  for (const r of rows) {
+    const ind = r.industry_sw1 || "未分类";
+    cnt[ind] = (cnt[ind] || 0) + 1;
+  }
+  const items = Object.entries(cnt).sort((a, b) => a[1] - b[1]);   // 升序，横向条形图从下往上=多在上
+  const inds = items.map(x => x[0]);
+  const vals = items.map(x => x[1]);
+  const total = rows.length;
+  // 自适应高度：每个行业一行，约 22px
+  div.style.height = Math.max(120, inds.length * 22 + 50) + "px";
+  topIndustryChart = echarts.init(div);
+  topIndustryChart.setOption({
+    grid: { left: 70, right: 40, top: 8, bottom: 24 },
+    tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+               formatter: p => `${p[0].name}：${p[0].value} 只（占 ${(p[0].value / total * 100).toFixed(0)}%）` },
+    xAxis: { type: "value", minInterval: 1, axisLabel: { fontSize: 10 } },
+    yAxis: { type: "category", data: inds, axisLabel: { fontSize: 11 } },
+    series: [{
+      type: "bar", data: vals, barMaxWidth: 18,
+      itemStyle: { color: "#1a4d80", borderRadius: [0, 3, 3, 0] },
+      label: { show: true, position: "right", fontSize: 10, color: "#666",
+               formatter: p => `${p.value}（${(p.value / total * 100).toFixed(0)}%）` },
+    }],
+  });
 }
 
 async function renderNavChart(code) {
