@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>因子库 v0.1</title>
-  <link rel="stylesheet" href="styles.css?v=20260601171142">
+  <link rel="stylesheet" href="styles.css?v=20260601173051">
   <link rel="stylesheet" href="vendor/katex.min.css">
   <script type="importmap">
     {
@@ -170,6 +170,11 @@
             <select id="rk-end" style="font-size:12px;padding:2px;border:1px solid #ccc;border-radius:3px"></select>
             <span id="rk-range-info" style="color:#888;font-size:11px;margin-left:4px"></span>
           </div>
+          <div style="margin-top:8px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            <span style="color:#666;font-size:12px">标签筛选：</span>
+            <span id="rank-tag-filters"></span>
+            <span id="rank-tag-clear" style="display:none;cursor:pointer;color:#c14545;font-size:11px;margin-left:4px">清除筛选</span>
+          </div>
           <div style="margin-top:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
             <span id="rank-sel-count" style="color:#666;font-size:12px">已选 0 个</span>
             <button id="rank-to-compare" class="cpsn-btn" style="border-color:#1a4d80;color:#1a4d80">→ 加入多因子对比</button>
@@ -185,6 +190,6 @@
 
   <script src="vendor/echarts.min.js"></script>
   <script src="vendor/katex.min.js"></script>
-  <script type="module" src="app.js?v=20260601171142"></script>
+  <script type="module" src="app.js?v=20260601173051"></script>
 </body>
 </html>

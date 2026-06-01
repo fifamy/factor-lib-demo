@@ -251,9 +251,16 @@ function renderFactorDetail(meta) {
       <div class="label" style="color:#888;font-size:11px">数据来源（Wind 表.字段）</div>
       <p style="font-size:12px;color:#444;margin-top:3px">${meta.wind_source}</p>
     </div>` : "";
+  const tagBlock = (meta.env_tag && meta.env_tag !== "—") ? `
+    <p style="margin-top:4px">
+      <span class="ftag ftag-${meta.env_tag}">${meta.env_tag}</span>
+      <span class="ftag ftag-${meta.time_tag}">${meta.time_tag}</span>
+      <span style="color:#aaa;font-size:11px;margin-left:6px">基于全样本回测/IC 自动判定</span>
+    </p>` : "";
   document.getElementById("factor-detail").innerHTML = `
     <h3>${meta.code}　·　${meta.name_cn}</h3>
     <p><b>${meta.l1} → ${meta.l2}</b>　方向：${dirArrow}</p>
+    ${tagBlock}
     <p>${meta.description}</p>
     ${formulaBlock}
     ${sourceBlock}
@@ -1104,11 +1111,43 @@ const RANK_COLS = [
   { key: "icir",      label: "IC_IR",   fmt: v => v.toFixed(2) },
   { key: "medCap",    label: "中位市值(亿)", fmt: v => v === null ? "—" : Math.round(v).toLocaleString() },
   { key: "capStyle",  label: "市值风格", lcol: true, fmt: v => v },
+  { key: "tags",      label: "标签", lcol: true, sortable: false,
+    fmt: (_, r) => `<span class="ftag ftag-${r.env_tag}">${r.env_tag}</span> <span class="ftag ftag-${r.time_tag}">${r.time_tag}</span>` },
   { key: "top3ind",   label: "前三行业(最新选股)", lcol: true, fmt: v => v },
 ];
 
 let _rankState = { rows: null, sortKey: "score", desc: true, checked: new Set(),
-                   range: "all", start: null, end: null };
+                   range: "all", start: null, end: null, tagFilters: new Set() };
+
+const ENV_TAGS = ["牛市进攻型", "熊市防御型", "全天候型", "震荡占优型"];
+const TIME_TAGS = ["长期稳定型", "近期转强", "近期失效", "持续低效"];
+
+// 构建标签筛选 chip（点击切换；多选为「与」关系）。绑定一次。
+let _tagFilterBound = false;
+function buildTagFilters() {
+  if (_tagFilterBound) return;
+  const box = document.getElementById("rank-tag-filters");
+  box.innerHTML = [...ENV_TAGS, ...TIME_TAGS]
+    .map(t => `<span class="ftag ftag-${t} tagfilter" data-tag="${t}">${t}</span>`).join(" ");
+  box.querySelectorAll(".tagfilter").forEach(el => {
+    el.onclick = () => {
+      const t = el.dataset.tag;
+      if (_rankState.tagFilters.has(t)) _rankState.tagFilters.delete(t);
+      else _rankState.tagFilters.add(t);
+      el.classList.toggle("on", _rankState.tagFilters.has(t));
+      document.getElementById("rank-tag-clear").style.display =
+        _rankState.tagFilters.size ? "inline" : "none";
+      drawRankTable();
+    };
+  });
+  document.getElementById("rank-tag-clear").onclick = () => {
+    _rankState.tagFilters.clear();
+    document.querySelectorAll("#rank-tag-filters .tagfilter").forEach(e => e.classList.remove("on"));
+    document.getElementById("rank-tag-clear").style.display = "none";
+    drawRankTable();
+  };
+  _tagFilterBound = true;
+}
 
 let _rankBarBound = false;
 async function renderRanking() {
@@ -1119,6 +1158,7 @@ async function renderRanking() {
       document.getElementById("rank-to-compare").onclick = () => rankSendTo("compare");
       document.getElementById("rank-to-compose").onclick = () => rankSendTo("compose");
       document.getElementById("rank-clear-sel").onclick = () => { _rankState.checked.clear(); drawRankTable(); };
+      buildTagFilters();
       await initRankRangeControls();
       _rankBarBound = true;
     }
@@ -1361,6 +1401,8 @@ async function computeRanking(startMonth, endMonth) {
       top3ind: ind3.get(f.code) || "—",
       medCap: mc ? mc.medCap : null,
       capStyle: mc ? mc.style : "—",
+      env_tag: f.env_tag || "—",
+      time_tag: f.time_tag || "—",
     });
   }
   // 4) 综合分：各分项在全因子截面 z-score 后加权。
@@ -1403,8 +1445,13 @@ function drawRankTable() {
     const nMonths = _rankState.rows[0]?.nMonths;
     info.textContent = `区间 ${_rankState.start} ~ ${_rankState.end}` + (nMonths ? `（${nMonths} 个月）` : "");
   }
+  // 标签筛选：多个标签为「与」关系（行的 env_tag/time_tag 须命中所有已选标签）
+  const tf = _rankState.tagFilters;
+  const base = tf.size
+    ? _rankState.rows.filter(r => [...tf].every(t => r.env_tag === t || r.time_tag === t))
+    : _rankState.rows;
   // mdd 排序特殊：值是负数，"越大(越接近0)越好"，默认降序即可；其它指标同理降序=好在前
-  const sorted = [..._rankState.rows].sort((a, b) => {
+  const sorted = [...base].sort((a, b) => {
     const av = a[sortKey], bv = b[sortKey];
     if (typeof av === "string") return desc ? bv.localeCompare(av) : av.localeCompare(bv);
     return desc ? bv - av : av - bv;
@@ -1425,7 +1472,7 @@ function drawRankTable() {
       const cls = (c.lcol ? "lcol " : "") + (c.cls || "");
       let val;
       if (c.key === "rank") val = r._rank;
-      else val = c.fmt(r[c.key]);
+      else val = c.fmt(r[c.key], r);
       return `<td class="${cls.trim()}">${val}</td>`;
     }).join("");
     html += `<tr class="${topCls}">${chk}${tds}</tr>`;
@@ -1436,7 +1483,7 @@ function drawRankTable() {
   box.querySelectorAll("th[data-key]").forEach(th => {
     th.onclick = () => {
       const k = th.dataset.key;
-      if (k === "rank") return;
+      if (k === "rank" || k === "tags") return;   // 标签列不参与排序
       if (_rankState.sortKey === k) _rankState.desc = !_rankState.desc;
       else { _rankState.sortKey = k; _rankState.desc = true; }
       drawRankTable();

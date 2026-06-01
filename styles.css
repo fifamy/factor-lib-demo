@@ -40,6 +40,19 @@ table.rank-table th.sorted { color: #1a4d80; }
 table.rank-table td { padding: 4px 8px; border-bottom: 1px solid #eee; text-align: right; white-space: nowrap; }
 table.rank-table tr.top-rank td { background: #eef5ee; }
 table.rank-table td.score-cell { font-weight: 600; color: #1a4d80; }
+/* 因子标签 chip */
+.ftag { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 11px; line-height: 1.5; white-space: nowrap; }
+.ftag-牛市进攻型 { background: #fde2e1; color: #c0392b; }
+.ftag-熊市防御型 { background: #dde8f5; color: #1a4d80; }
+.ftag-全天候型 { background: #ddf0e0; color: #2e7d4f; }
+.ftag-震荡占优型 { background: #f5e9d6; color: #a9762a; }
+.ftag-长期稳定型 { background: #d4ede0; color: #1f7a52; }
+.ftag-近期转强 { background: #d6f0f2; color: #1a7f8c; }
+.ftag-近期失效 { background: #fbe0d4; color: #c1521f; }
+.ftag-持续低效 { background: #e6e6e6; color: #777; }
+/* 标签筛选 chip（可点） */
+.tagfilter { cursor: pointer; border: 1px solid transparent; }
+.tagfilter.on { outline: 2px solid #1a4d80; outline-offset: 1px; }
 .panel { background: #fafafa; border: 1px solid #e0e0e0; border-radius: 5px; padding: 12px; }
 .panel h3 { font-size: 11px; color: #666; text-transform: uppercase;
             letter-spacing: 0.5px; margin-bottom: 8px; }
