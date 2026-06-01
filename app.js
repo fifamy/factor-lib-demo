@@ -1057,6 +1057,7 @@ const RANK_COLS = [
   { key: "winRate",   label: "月胜率",  fmt: v => (v * 100).toFixed(0) + "%" },
   { key: "rankIC",    label: "RankIC均值", fmt: v => v.toFixed(3) },
   { key: "icir",      label: "IC_IR",   fmt: v => v.toFixed(2) },
+  { key: "top3ind",   label: "前三行业(最新选股)", lcol: true, fmt: v => v },
 ];
 
 let _rankState = { rows: null, sortKey: "score", desc: true, checked: new Set(),
@@ -1199,6 +1200,32 @@ async function recomputeRank() {
   drawRankTable();
 }
 
+// 每因子 top-30 选股的前三大申万一级行业（最新截面）。与排行榜时间区间无关，缓存只查一次。
+// 返回 Map: factor_code → "行业A 12、行业B 7、行业C 5"
+let _top3IndCache = null;
+async function factorTop3Industries() {
+  if (_top3IndCache) return _top3IndCache;
+  const res = await state.db.query(`
+    WITH ranked AS (
+      SELECT s.factor_code, COALESCE(d.industry_sw1,'未分类') AS ind,
+             ROW_NUMBER() OVER (PARTITION BY s.factor_code ORDER BY s.score DESC) AS rk
+      FROM factor_score s
+      JOIN stock_meta m USING(stock_code)
+      LEFT JOIN stock_descriptors d USING(stock_code)
+      WHERE s.score IS NOT NULL
+        AND COALESCE(m.is_st,FALSE)=FALSE AND COALESCE(m.is_active_latest,FALSE)=TRUE
+    ),
+    top30 AS (SELECT factor_code, ind FROM ranked WHERE rk <= 30),
+    cnt AS (SELECT factor_code, ind, COUNT(*) c FROM top30 GROUP BY factor_code, ind),
+    r2 AS (SELECT factor_code, ind, c,
+                  ROW_NUMBER() OVER (PARTITION BY factor_code ORDER BY c DESC, ind) rk FROM cnt)
+    SELECT factor_code, string_agg(ind || ' ' || c, '、' ORDER BY rk) AS top3
+    FROM r2 WHERE rk <= 3 GROUP BY factor_code
+  `);
+  _top3IndCache = new Map(res.toArray().map(r => [r.factor_code, r.top3]));
+  return _top3IndCache;
+}
+
 // startMonth/endMonth: 'YYYY-MM'（含端点）；null 表示不限。
 async function computeRanking(startMonth, endMonth) {
   // 区间过滤条件（作用于 trade_date / month）
@@ -1234,6 +1261,9 @@ async function computeRanking(startMonth, endMonth) {
     const ir = (r.rank_ic_std && r.rank_ic_std > 0) ? r.rank_ic_mean / r.rank_ic_std * Math.sqrt(12) : 0;
     icStat.set(r.factor_code, { rankIC: r.rank_ic_mean ?? 0, icir: ir });
   }
+  // 2.5) 每因子 top-30 选股的前三大申万一级行业（最新截面，与时间区间无关，故缓存只查一次）
+  const ind3 = await factorTop3Industries();
+
   // 3) 每因子汇总指标
   const rows = [];
   for (const f of state.catalog) {
@@ -1246,6 +1276,7 @@ async function computeRanking(startMonth, endMonth) {
       annual: m.annual, sharpe: m.sharpe, mdd: m.mdd, winRate: m.winRate,
       rankIC: ic.rankIC, icir: ic.icir,
       nMonths: s.rets.length,
+      top3ind: ind3.get(f.code) || "—",
     });
   }
   // 4) 综合分：各分项在全因子截面 z-score 后加权。
