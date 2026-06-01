@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>因子库 v0.1</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="vendor/katex.min.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "apache-arrow": "https://cdn.jsdelivr.net/npm/apache-arrow@15.0.2/+esm"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="topbar">
+    <span><b>因子库 v0.1</b>　·　M0+M1 Demo</span>
+    <span id="meta">加载中…</span>
+  </div>
+  <div id="main">
+    <div id="sidebar">
+      <h2>因子目录</h2>
+      <div id="factor-tree" class="loading">加载中…</div>
+    </div>
+    <div id="content">
+      <div id="mode-switch">
+        <button class="mode-btn active" data-mode="single">单因子分析</button>
+        <button class="mode-btn" data-mode="compare">多因子对比</button>
+        <button class="mode-btn" data-mode="compose">多因子合成</button>
+        <button class="mode-btn" data-mode="ranking">因子排行榜</button>
+      </div>
+
+      <!-- 单因子视图 -->
+      <div id="single-view">
+        <div class="panel" id="factor-detail">
+          <h3>因子详情</h3>
+          <div class="empty">从左侧选择一个因子</div>
+        </div>
+        <div class="panel" id="top-stocks">
+          <h3>Top 30 股票（最新月末截面）</h3>
+          <div class="empty">从左侧选择一个因子</div>
+        </div>
+        <div class="panel">
+          <h3 id="nav-title">组合净值（月末等权调仓，0.2% 双边成本）</h3>
+          <div id="nav-chart"></div>
+        </div>
+        <div class="panel" id="kpi-panel">
+          <h3>组合指标</h3>
+          <div id="kpi"><div class="empty">从左侧选择一个因子</div></div>
+        </div>
+        <div class="panel">
+          <h3 id="scan-title">指标 vs 持仓数（top-1 ~ top-100 全扫描）</h3>
+          <div style="margin-bottom:6px">
+            <button class="scan-btn active" data-metric="annual">年化收益</button>
+            <button class="scan-btn" data-metric="sharpe">夏普</button>
+            <button class="scan-btn" data-metric="mdd">最大回撤</button>
+            <button class="scan-btn" data-metric="nav">期末净值</button>
+          </div>
+          <div id="scan-chart"></div>
+        </div>
+      </div>
+
+      <!-- 多因子对比视图 -->
+      <div id="compare-view" style="display:none">
+        <div class="panel">
+          <h3>多因子对比</h3>
+          <p style="color:#666;font-size:12px">从左侧目录点选因子加入对比（可多选）；每个因子可单独设持仓数。
+            <span id="cmp-selected"></span></p>
+          <div style="margin-top:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span style="color:#666;font-size:11px">新加入默认持仓数：</span>
+            <button class="cmpdef-btn" data-n="10">10</button>
+            <button class="cmpdef-btn active" data-n="30">30</button>
+            <button class="cmpdef-btn" data-n="50">50</button>
+          </div>
+          <div id="cmp-controls" style="margin-top:8px"><div class="empty">未选因子</div></div>
+        </div>
+        <div class="panel">
+          <h3 id="cmp-table-title">因子指标对比表</h3>
+          <div id="cmp-table"><div class="empty">选 2 个以上因子开始对比</div></div>
+        </div>
+        <div class="panel">
+          <h3 id="cmp-nav-title">组合净值叠加</h3>
+          <div id="cmp-nav-chart" style="width:100%;height:320px"></div>
+        </div>
+        <div class="panel">
+          <h3 id="cmp-ic-title">IC 月度时序对比</h3>
+          <div id="cmp-ic-chart" style="width:100%;height:280px"></div>
+        </div>
+        <div class="panel">
+          <h3>因子相关性热力图（得分两两相关，判断冗余）</h3>
+          <p style="color:#999;font-size:11px;margin:-4px 0 6px 0">未选因子时显示全部 46 个（看颜色，悬停查数值）；选 2 个以上因子则只比这几个并直接标数值。</p>
+          <div id="cmp-corr-chart" style="width:100%"></div>
+        </div>
+      </div>
+
+      <!-- 多因子合成视图 -->
+      <div id="compose-view" style="display:none">
+        <div class="panel">
+          <h3>多因子合成</h3>
+          <p style="color:#666;font-size:12px">从左侧点选因子（再点取消）。每个因子可设<b>权重</b>（参与合成打分）和可选的<b>过滤阈值</b>。
+            选股逻辑：先用阈值条件筛掉不符合的股，再在剩下的里按合成得分选 top-N。<span id="cps-selected"></span></p>
+          <p style="color:#999;font-size:11px;margin-top:2px">过滤阈值为 z-score，留空=不过滤；≥1.0 约前 16%，≤-1.0 约后 16%。</p>
+          <div style="margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span style="color:#666;font-size:11px">选股数：</span>
+            <button class="cpsn-btn" data-n="10">10</button>
+            <button class="cpsn-btn active" data-n="30">30</button>
+            <button class="cpsn-btn" data-n="50">50</button>
+            <input id="cpsn-input" type="number" min="1" max="100" placeholder="1-100"
+                   style="width:64px;padding:3px 6px;border:1px solid #ccc;border-radius:3px;font-size:12px" />
+            <button id="cpsn-add" class="cpsn-btn">+ 用此数</button>
+          </div>
+          <div id="cps-controls" style="margin-top:8px"><div class="empty">未选因子</div></div>
+          <div style="margin-top:10px">
+            <button id="cps-optimize" class="cpsn-btn" style="border-color:#1a4d80;color:#1a4d80">⚙ 求最优权重</button>
+            <span style="color:#999;font-size:11px">在所选因子上网格搜索（非负、和为1），各目标各给一组最优权重</span>
+          </div>
+          <div id="cps-opt" style="margin-top:8px"></div>
+        </div>
+        <div class="panel" id="cps-stocks">
+          <h3>合成 Top 股票（最新月末截面）</h3>
+          <div class="empty">选因子后显示</div>
+        </div>
+        <div class="panel">
+          <h3 id="cps-nav-title">合成组合净值</h3>
+          <div id="cps-nav-chart" style="width:100%;height:320px"></div>
+        </div>
+        <div class="panel" id="cps-kpi-panel">
+          <h3>合成组合指标</h3>
+          <div id="cps-kpi"><div class="empty">选因子后显示</div></div>
+        </div>
+      </div>
+
+      <!-- 因子排行榜视图 -->
+      <div id="ranking-view" style="display:none">
+        <div class="panel">
+          <h3>因子排行榜</h3>
+          <p style="color:#666;font-size:12px">所有因子按<b>综合得分</b>排名。综合分 = 因子有效性(50%) + 实战业绩(50%)，
+            各分项指标在全因子截面标准化(z-score)后加权；方向已统一（数值越大越好）。</p>
+          <p style="color:#999;font-size:11px;margin-top:2px">业绩口径：top-30 等权、月末调仓、0.2% 双边成本，2020-01 ~ 2025-12。
+            有效性：RankIC 均值 + IC_IR（信号稳定性）。点击列头可改排序，勾选因子后可一键带入对比 / 合成。</p>
+          <div style="margin-top:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span id="rank-sel-count" style="color:#666;font-size:12px">已选 0 个</span>
+            <button id="rank-to-compare" class="cpsn-btn" style="border-color:#1a4d80;color:#1a4d80">→ 加入多因子对比</button>
+            <button id="rank-to-compose" class="cpsn-btn" style="border-color:#1a4d80;color:#1a4d80">→ 加入多因子合成</button>
+            <button id="rank-clear-sel" class="cpsn-btn">清空勾选</button>
+          </div>
+          <div id="rank-table" style="margin-top:10px"><div class="empty">加载中…</div></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="vendor/echarts.min.js"></script>
+  <script src="vendor/katex.min.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

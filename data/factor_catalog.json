@@ -1,0 +1,462 @@
+[
+  {
+    "code": "MOM12_1",
+    "name_cn": "动量 12-1",
+    "l1": "市场交易信息",
+    "l2": "动量",
+    "direction": 1,
+    "description": "过去 252 个交易日剔除最近 21 个交易日的累计对数收益，半衰期 126 加权。",
+    "formula": "MOM12_1 = Σ_{k=21}^{252} w_k · ln(P_{t-k+1} / P_{t-k})\n其中 P 为复权收盘价，w_k 为半衰期 126 个交易日的指数权重（越近权重越大），窗口取 [t-252, t-22]（剔除最近 21 个交易日以避开短期反转）。",
+    "wind_source": "AShareEODPrices.S_DQ_ADJCLOSE（复权收盘价）"
+  },
+  {
+    "code": "REV1M",
+    "name_cn": "短期反转",
+    "l1": "市场交易信息",
+    "l2": "动量",
+    "direction": -1,
+    "description": "过去 21 个交易日的累计对数收益（短期反转：高过去收益往往跟随回调）。",
+    "formula": "REV1M = ln(P_t / P_{t-21})\n即过去 21 个交易日的累计对数收益（P 为复权收盘价）。方向为负：过去涨多的下期倾向回调。",
+    "wind_source": "AShareEODPrices.S_DQ_ADJCLOSE（复权收盘价）"
+  },
+  {
+    "code": "DASTD",
+    "name_cn": "日收益年化波动率",
+    "l1": "市场交易信息",
+    "l2": "波动",
+    "direction": -1,
+    "description": "过去 252 个交易日的日对数收益标准差，乘 √252 年化。",
+    "formula": "DASTD = std(r_d, 过去 252 个交易日) × √252\n其中 r_d = ln(P_t / P_{t-1}) 为日对数收益（P 为复权收盘价），年化波动率。",
+    "wind_source": "AShareEODPrices.S_DQ_ADJCLOSE（复权收盘价）"
+  },
+  {
+    "code": "STOM",
+    "name_cn": "月度对数换手率",
+    "l1": "市场交易信息",
+    "l2": "流动性",
+    "direction": -1,
+    "description": "过去 21 个交易日换手率之和的对数。换手率 = 成交额 / 流通市值。",
+    "formula": "STOM = ln( Σ_{过去 21 个交易日} turnover_d )\nturnover_d = 成交额 / 流通市值，流通市值 = 总市值 × (自由流通股本 / 总股本)。剔除停牌日（成交额=0）。",
+    "wind_source": "AShareEODPrices.S_DQ_AMOUNT（成交额）、AShareEODDerivativeIndicator.S_DQ_MV（总市值）、FREE_SHARES_TODAY（自由流通股本）、TOT_SHR_TODAY（总股本）"
+  },
+  {
+    "code": "BETA",
+    "name_cn": "历史 Beta",
+    "l1": "市场交易信息",
+    "l2": "Beta",
+    "direction": 1,
+    "description": "过去 252 个交易日个股对 cap-weighted 市场组合的回归 Beta。",
+    "formula": "BETA = cov(r_i, r_mkt) / var(r_mkt)，过去 252 个交易日 OLS 回归斜率\nr_i 为个股日对数收益；r_mkt 为全市场 cap-weighted 组合日收益，权重 w_j(t-1) = 市值_j(t-1) / Σ市值。",
+    "wind_source": "AShareEODPrices.S_DQ_ADJCLOSE（复权收盘价）、AShareEODDerivativeIndicator.S_DQ_MV（总市值，用于市值加权）"
+  },
+  {
+    "code": "PE",
+    "name_cn": "市盈率PE",
+    "l1": "公司内生信息",
+    "l2": "估值",
+    "direction": -1,
+    "description": "PE = 总市值 / TTM归母净利润；越低越便宜。",
+    "formula": "市盈率PE = AShareValuationIndicator.S_VAL_PE_TTM（Wind 已算好，月末截面取值）",
+    "wind_source": "AShareValuationIndicator.S_VAL_PE_TTM"
+  },
+  {
+    "code": "PB",
+    "name_cn": "市净率PB",
+    "l1": "公司内生信息",
+    "l2": "估值",
+    "direction": -1,
+    "description": "PB = 总市值 / 归母净资产；越低账面估值越便宜。",
+    "formula": "市净率PB = AShareValuationIndicator.S_VAL_PB_LF（Wind 已算好，月末截面取值）",
+    "wind_source": "AShareValuationIndicator.S_VAL_PB_LF"
+  },
+  {
+    "code": "PS",
+    "name_cn": "市销率PS",
+    "l1": "公司内生信息",
+    "l2": "估值",
+    "direction": -1,
+    "description": "PS = 总市值 / TTM营业收入；适用盈利波动大的成长公司。",
+    "formula": "市销率PS = AShareValuationIndicator.S_VAL_PS_TTM（Wind 已算好，月末截面取值）",
+    "wind_source": "AShareValuationIndicator.S_VAL_PS_TTM"
+  },
+  {
+    "code": "DIVYLD",
+    "name_cn": "股息率",
+    "l1": "公司内生信息",
+    "l2": "估值",
+    "direction": 1,
+    "description": "近12个月现金分红 / 总市值；越高分红回报越好。",
+    "formula": "股息率 = AShareValuationIndicator.S_VAL_DIVIDENDYIELD2（Wind 已算好，月末截面取值）",
+    "wind_source": "AShareValuationIndicator.S_VAL_DIVIDENDYIELD2"
+  },
+  {
+    "code": "EP",
+    "name_cn": "收益市值比",
+    "l1": "公司内生信息",
+    "l2": "估值",
+    "direction": 1,
+    "description": "EP = TTM净利润 / 总市值（PE 的倒数）；越高越便宜。",
+    "formula": "收益市值比 = DailyValuationFactor.S_DFA_PROFITTOMV（Wind 已算好，月末截面取值）",
+    "wind_source": "DailyValuationFactor.S_DFA_PROFITTOMV"
+  },
+  {
+    "code": "PE_DED",
+    "name_cn": "扣非市盈率",
+    "l1": "公司内生信息",
+    "l2": "估值",
+    "direction": -1,
+    "description": "扣除非经常性损益后的 PE(TTM)；剔除一次性损益的估值。",
+    "formula": "扣非市盈率 = DailyValuationFactor.S_DFA_PETTM_DEDUCTED（Wind 已算好，月末截面取值）",
+    "wind_source": "DailyValuationFactor.S_DFA_PETTM_DEDUCTED"
+  },
+  {
+    "code": "EV2EBITDA",
+    "name_cn": "EV/EBITDA",
+    "l1": "公司内生信息",
+    "l2": "估值",
+    "direction": -1,
+    "description": "总市值 / EBITDA(TTM)；适合跨资本结构比较。",
+    "formula": "EV/EBITDA = DailyValuationFactor.S_DFA_MVTOEBITDA（Wind 已算好，月末截面取值）",
+    "wind_source": "DailyValuationFactor.S_DFA_MVTOEBITDA"
+  },
+  {
+    "code": "ROE",
+    "name_cn": "净资产收益率",
+    "l1": "公司内生信息",
+    "l2": "盈利能力",
+    "direction": 1,
+    "description": "ROE = TTM归母净利润 / 平均归母净资产；股东资本回报。",
+    "formula": "净资产收益率 = PITFinancialFactor（PIT，无未来函数）.S_DFA_ROE_TTM（Wind 已算好，月末截面取值）",
+    "wind_source": "PITFinancialFactor（PIT，无未来函数）.S_DFA_ROE_TTM"
+  },
+  {
+    "code": "ROA",
+    "name_cn": "总资产收益率",
+    "l1": "公司内生信息",
+    "l2": "盈利能力",
+    "direction": 1,
+    "description": "ROA = TTM净利润 / 平均总资产；资产盈利效率。",
+    "formula": "总资产收益率 = PITFinancialFactor（PIT，无未来函数）.S_DFA_ROA1_TTM（Wind 已算好，月末截面取值）",
+    "wind_source": "PITFinancialFactor（PIT，无未来函数）.S_DFA_ROA1_TTM"
+  },
+  {
+    "code": "ROIC",
+    "name_cn": "投入资本回报率",
+    "l1": "公司内生信息",
+    "l2": "盈利能力",
+    "direction": 1,
+    "description": "ROIC = NOPAT / 平均投入资本；投入资本回报。",
+    "formula": "投入资本回报率 = PITFinancialFactor（PIT，无未来函数）.S_DFA_ROIC_TTM（Wind 已算好，月末截面取值）",
+    "wind_source": "PITFinancialFactor（PIT，无未来函数）.S_DFA_ROIC_TTM"
+  },
+  {
+    "code": "GROSSMGN",
+    "name_cn": "毛利率",
+    "l1": "公司内生信息",
+    "l2": "盈利能力",
+    "direction": 1,
+    "description": "毛利率 = (营收-营业成本)/营收；产品盈利空间。",
+    "formula": "毛利率 = PITFinancialFactor（PIT，无未来函数）.S_DFA_GROSSPROFITMARGIN_TTM（Wind 已算好，月末截面取值）",
+    "wind_source": "PITFinancialFactor（PIT，无未来函数）.S_DFA_GROSSPROFITMARGIN_TTM"
+  },
+  {
+    "code": "NETMGN",
+    "name_cn": "净利率",
+    "l1": "公司内生信息",
+    "l2": "盈利能力",
+    "direction": 1,
+    "description": "净利率 = TTM净利润 / TTM营收；收入转化利润能力。",
+    "formula": "净利率 = PITFinancialFactor（PIT，无未来函数）.S_DFA_NETPROFITMARGIN_TTM（Wind 已算好，月末截面取值）",
+    "wind_source": "PITFinancialFactor（PIT，无未来函数）.S_DFA_NETPROFITMARGIN_TTM"
+  },
+  {
+    "code": "OPMGN",
+    "name_cn": "营业利润率",
+    "l1": "公司内生信息",
+    "l2": "盈利能力",
+    "direction": 1,
+    "description": "营业利润 / 营业收入（≈EBIT Margin）；经营盈利率。",
+    "formula": "营业利润率 = PITFinancialFactor（PIT，无未来函数）.S_DFA_OPTOOR_TTM（Wind 已算好，月末截面取值）",
+    "wind_source": "PITFinancialFactor（PIT，无未来函数）.S_DFA_OPTOOR_TTM"
+  },
+  {
+    "code": "OCF2OR",
+    "name_cn": "现金流收入比",
+    "l1": "公司内生信息",
+    "l2": "盈利质量",
+    "direction": 1,
+    "description": "经营活动现金流 / 营业收入；利润的现金含量。",
+    "formula": "现金流收入比 = PITFinancialFactor（PIT，无未来函数）.S_DFA_OCFTOOR_TTM（Wind 已算好，月末截面取值）",
+    "wind_source": "PITFinancialFactor（PIT，无未来函数）.S_DFA_OCFTOOR_TTM"
+  },
+  {
+    "code": "NPGROWTH",
+    "name_cn": "净利润同比",
+    "l1": "公司内生信息",
+    "l2": "成长",
+    "direction": 1,
+    "description": "归母净利润 TTM 同比增速。",
+    "formula": "净利润同比 = PITFinancialFactor（PIT，无未来函数）.S_DFA_TTMGROWRATE_NETPROFIT（Wind 已算好，月末截面取值）",
+    "wind_source": "PITFinancialFactor（PIT，无未来函数）.S_DFA_TTMGROWRATE_NETPROFIT"
+  },
+  {
+    "code": "OPGROWTH",
+    "name_cn": "营业利润同比",
+    "l1": "公司内生信息",
+    "l2": "成长",
+    "direction": 1,
+    "description": "营业利润 TTM 同比增速。",
+    "formula": "营业利润同比 = PITFinancialFactor（PIT，无未来函数）.S_DFA_TTMGROWRATE_OP（Wind 已算好，月末截面取值）",
+    "wind_source": "PITFinancialFactor（PIT，无未来函数）.S_DFA_TTMGROWRATE_OP"
+  },
+  {
+    "code": "CFOGROWTH",
+    "name_cn": "现金流同比",
+    "l1": "公司内生信息",
+    "l2": "成长",
+    "direction": 1,
+    "description": "经营活动现金流 TTM 同比增速。",
+    "formula": "现金流同比 = PITFinancialFactor（PIT，无未来函数）.S_DFA_TTMGROWRATE_CFOTT（Wind 已算好，月末截面取值）",
+    "wind_source": "PITFinancialFactor（PIT，无未来函数）.S_DFA_TTMGROWRATE_CFOTT"
+  },
+  {
+    "code": "LEVERAGE",
+    "name_cn": "资产负债率",
+    "l1": "公司内生信息",
+    "l2": "财务稳健",
+    "direction": -1,
+    "description": "总负债 / 总资产；越高财务杠杆/风险越大。",
+    "formula": "资产负债率 = PITFinancialFactor（PIT，无未来函数）.S_DFA_DEBTTOASSET（Wind 已算好，月末截面取值）",
+    "wind_source": "PITFinancialFactor（PIT，无未来函数）.S_DFA_DEBTTOASSET"
+  },
+  {
+    "code": "LNMV",
+    "name_cn": "对数市值",
+    "l1": "公司内生信息",
+    "l2": "市值",
+    "direction": -1,
+    "description": "ln(总市值)；Barra Size 风格因子，A 股小市值历史占优故标负向。",
+    "formula": "对数市值 = DailyValuationFactor.S_DFA_LNMV（Wind 已算好，月末截面取值）",
+    "wind_source": "DailyValuationFactor.S_DFA_LNMV"
+  },
+  {
+    "code": "PCF",
+    "name_cn": "市现率PCF",
+    "l1": "公司内生信息",
+    "l2": "估值",
+    "direction": -1,
+    "description": "PCF = 总市值 / TTM经营活动现金流；越低现金流估值越便宜。",
+    "formula": "市现率PCF = AShareValuationIndicator.S_VAL_PCF_OCFTTM（Wind 已算好，月末截面取值）",
+    "wind_source": "AShareValuationIndicator.S_VAL_PCF_OCFTTM"
+  },
+  {
+    "code": "OCF2OI",
+    "name_cn": "现金流经营收益比",
+    "l1": "公司内生信息",
+    "l2": "盈利质量",
+    "direction": 1,
+    "description": "经营活动现金流净额 / 经营活动净收益；经营收益的现金支撑。",
+    "formula": "现金流经营收益比 = PITFinancialFactor（PIT，无未来函数）.S_DFA_OCFTOOPERATEINCOME_TTM（Wind 已算好，月末截面取值）",
+    "wind_source": "PITFinancialFactor（PIT，无未来函数）.S_DFA_OCFTOOPERATEINCOME_TTM"
+  },
+  {
+    "code": "ACCRUAL",
+    "name_cn": "应计利润比",
+    "l1": "公司内生信息",
+    "l2": "盈利质量",
+    "direction": -1,
+    "description": "现金流资产比(应计)=(经营现金流-净利润)×2/平均总资产；应计越高质量越差，故负向。",
+    "formula": "应计利润比 = PITFinancialFactor（PIT，无未来函数）.S_DFA_ACCA（Wind 已算好，月末截面取值）",
+    "wind_source": "PITFinancialFactor（PIT，无未来函数）.S_DFA_ACCA"
+  },
+  {
+    "code": "IMPAIRRISK",
+    "name_cn": "减值风险",
+    "l1": "公司内生信息",
+    "l2": "财务稳健",
+    "direction": -1,
+    "description": "资产减值损失 / 营业总收入(TTM)；越高减值风险越大，故负向。",
+    "formula": "减值风险 = PITFinancialFactor（PIT，无未来函数）.S_DFA_IMPAIRTOGR_TTM（Wind 已算好，月末截面取值）",
+    "wind_source": "PITFinancialFactor（PIT，无未来函数）.S_DFA_IMPAIRTOGR_TTM"
+  },
+  {
+    "code": "GMGROWTH",
+    "name_cn": "毛利率同比",
+    "l1": "公司内生信息",
+    "l2": "成长",
+    "direction": 1,
+    "description": "销售毛利率(TTM)同比变化。",
+    "formula": "毛利率同比 = PITFinancialFactor（PIT，无未来函数）.S_DFA_TTMGROWRATE_GM（Wind 已算好，月末截面取值）",
+    "wind_source": "PITFinancialFactor（PIT，无未来函数）.S_DFA_TTMGROWRATE_GM"
+  },
+  {
+    "code": "DEDNPGROWTH",
+    "name_cn": "扣非净利同比",
+    "l1": "公司内生信息",
+    "l2": "成长",
+    "direction": 1,
+    "description": "扣非归母净利润同比增速；剔除一次性损益的真实成长。",
+    "formula": "扣非净利同比 = AShareFinancialIndicator（按 ANN_DT PIT as-of 对齐月末）.S_FA_YOYNETPROFIT_DEDUCTED（Wind 已算好，月末截面取值）",
+    "wind_source": "AShareFinancialIndicator（按 ANN_DT PIT as-of 对齐月末）.S_FA_YOYNETPROFIT_DEDUCTED"
+  },
+  {
+    "code": "EQGROWTH",
+    "name_cn": "净资产增长率",
+    "l1": "公司内生信息",
+    "l2": "成长",
+    "direction": 1,
+    "description": "归母净资产比年初增长率。",
+    "formula": "净资产增长率 = AShareFinancialIndicator（按 ANN_DT PIT as-of 对齐月末）.S_FA_YOYEQUITY（Wind 已算好，月末截面取值）",
+    "wind_source": "AShareFinancialIndicator（按 ANN_DT PIT as-of 对齐月末）.S_FA_YOYEQUITY"
+  },
+  {
+    "code": "ROEGROWTH",
+    "name_cn": "ROE同比",
+    "l1": "公司内生信息",
+    "l2": "成长",
+    "direction": 1,
+    "description": "净资产收益率(摊薄)同比变化。",
+    "formula": "ROE同比 = AShareFinancialIndicator（按 ANN_DT PIT as-of 对齐月末）.S_FA_YOYROE（Wind 已算好，月末截面取值）",
+    "wind_source": "AShareFinancialIndicator（按 ANN_DT PIT as-of 对齐月末）.S_FA_YOYROE"
+  },
+  {
+    "code": "ORGROWTH",
+    "name_cn": "营业收入同比",
+    "l1": "公司内生信息",
+    "l2": "成长",
+    "direction": 1,
+    "description": "营业收入同比增速。",
+    "formula": "营业收入同比 = AShareFinancialIndicator（按 ANN_DT PIT as-of 对齐月末）.S_FA_YOY_OR（Wind 已算好，月末截面取值）",
+    "wind_source": "AShareFinancialIndicator（按 ANN_DT PIT as-of 对齐月末）.S_FA_YOY_OR"
+  },
+  {
+    "code": "CURRENT",
+    "name_cn": "流动比率",
+    "l1": "公司内生信息",
+    "l2": "财务稳健",
+    "direction": 1,
+    "description": "流动资产 / 流动负债；短期偿债能力，越高越稳健。",
+    "formula": "流动比率 = AShareFinancialIndicator（按 ANN_DT PIT as-of 对齐月末）.S_FA_CURRENT（Wind 已算好，月末截面取值）",
+    "wind_source": "AShareFinancialIndicator（按 ANN_DT PIT as-of 对齐月末）.S_FA_CURRENT"
+  },
+  {
+    "code": "QUICK",
+    "name_cn": "速动比率",
+    "l1": "公司内生信息",
+    "l2": "财务稳健",
+    "direction": 1,
+    "description": "(流动资产-存货) / 流动负债；剔除存货的短期偿债能力。",
+    "formula": "速动比率 = AShareFinancialIndicator（按 ANN_DT PIT as-of 对齐月末）.S_FA_QUICK（Wind 已算好，月末截面取值）",
+    "wind_source": "AShareFinancialIndicator（按 ANN_DT PIT as-of 对齐月末）.S_FA_QUICK"
+  },
+  {
+    "code": "CASHRATIO",
+    "name_cn": "保守速动比率",
+    "l1": "公司内生信息",
+    "l2": "财务稳健",
+    "direction": 1,
+    "description": "(货币资金+交易性金融资产+应收票据+应收账款+其他应收款)/流动负债。",
+    "formula": "保守速动比率 = AShareFinancialIndicator（按 ANN_DT PIT as-of 对齐月末）.S_FA_CASHRATIO（Wind 已算好，月末截面取值）",
+    "wind_source": "AShareFinancialIndicator（按 ANN_DT PIT as-of 对齐月末）.S_FA_CASHRATIO"
+  },
+  {
+    "code": "INTCOVER",
+    "name_cn": "利息保障倍数",
+    "l1": "公司内生信息",
+    "l2": "财务稳健",
+    "direction": 1,
+    "description": "已获利息倍数 = EBIT / 利息费用；偿付利息的能力，越高越安全。",
+    "formula": "利息保障倍数 = AShareFinancialIndicator（按 ANN_DT PIT as-of 对齐月末）.S_FA_EBITTOINTEREST（Wind 已算好，月末截面取值）",
+    "wind_source": "AShareFinancialIndicator（按 ANN_DT PIT as-of 对齐月末）.S_FA_EBITTOINTEREST"
+  },
+  {
+    "code": "DEBT2EQ",
+    "name_cn": "产权比率",
+    "l1": "公司内生信息",
+    "l2": "财务稳健",
+    "direction": -1,
+    "description": "总负债 / 总权益；越高财务杠杆越大，故负向。",
+    "formula": "产权比率 = AShareFinancialIndicator（按 ANN_DT PIT as-of 对齐月末）.S_FA_DEBTTOEQUITY（Wind 已算好，月末截面取值）",
+    "wind_source": "AShareFinancialIndicator（按 ANN_DT PIT as-of 对齐月末）.S_FA_DEBTTOEQUITY"
+  },
+  {
+    "code": "EQMULT",
+    "name_cn": "权益乘数",
+    "l1": "公司内生信息",
+    "l2": "财务稳健",
+    "direction": -1,
+    "description": "总资产 / 股东权益 = 1/(1-资产负债率)；越高杠杆越大，故负向。",
+    "formula": "权益乘数 = AShareFinancialIndicator（按 ANN_DT PIT as-of 对齐月末）.S_FA_ASSETSTOEQUITY（Wind 已算好，月末截面取值）",
+    "wind_source": "AShareFinancialIndicator（按 ANN_DT PIT as-of 对齐月末）.S_FA_ASSETSTOEQUITY"
+  },
+  {
+    "code": "OCF2DEBT",
+    "name_cn": "现金流负债比",
+    "l1": "公司内生信息",
+    "l2": "财务稳健",
+    "direction": 1,
+    "description": "经营活动现金流净额 / 负债合计；偿债的现金保障。",
+    "formula": "现金流负债比 = AShareFinancialIndicator（按 ANN_DT PIT as-of 对齐月末）.S_FA_OCFTODEBT（Wind 已算好，月末截面取值）",
+    "wind_source": "AShareFinancialIndicator（按 ANN_DT PIT as-of 对齐月末）.S_FA_OCFTODEBT"
+  },
+  {
+    "code": "TANG2ASSET",
+    "name_cn": "有形资产占比",
+    "l1": "公司内生信息",
+    "l2": "财务稳健",
+    "direction": 1,
+    "description": "有形资产 / 总资产；资产质量，无形/商誉占比越低越实。",
+    "formula": "有形资产占比 = AShareFinancialIndicator（按 ANN_DT PIT as-of 对齐月末）.S_FA_TANGIBLEASSETSTOASSETS（Wind 已算好，月末截面取值）",
+    "wind_source": "AShareFinancialIndicator（按 ANN_DT PIT as-of 对齐月末）.S_FA_TANGIBLEASSETSTOASSETS"
+  },
+  {
+    "code": "ASSETTURN",
+    "name_cn": "总资产周转率",
+    "l1": "公司内生信息",
+    "l2": "运营效率",
+    "direction": 1,
+    "description": "营业总收入 / 平均总资产；资产运用效率。",
+    "formula": "总资产周转率 = AShareFinancialIndicator（按 ANN_DT PIT as-of 对齐月末）.S_FA_ASSETSTURN（Wind 已算好，月末截面取值）",
+    "wind_source": "AShareFinancialIndicator（按 ANN_DT PIT as-of 对齐月末）.S_FA_ASSETSTURN"
+  },
+  {
+    "code": "INVTURN",
+    "name_cn": "存货周转率",
+    "l1": "公司内生信息",
+    "l2": "运营效率",
+    "direction": 1,
+    "description": "营业成本 / 平均存货；存货周转速度。",
+    "formula": "存货周转率 = AShareFinancialIndicator（按 ANN_DT PIT as-of 对齐月末）.S_FA_INVTURN（Wind 已算好，月末截面取值）",
+    "wind_source": "AShareFinancialIndicator（按 ANN_DT PIT as-of 对齐月末）.S_FA_INVTURN"
+  },
+  {
+    "code": "ARTURN",
+    "name_cn": "应收账款周转率",
+    "l1": "公司内生信息",
+    "l2": "运营效率",
+    "direction": 1,
+    "description": "营业收入 / 平均应收账款；回款效率。",
+    "formula": "应收账款周转率 = AShareFinancialIndicator（按 ANN_DT PIT as-of 对齐月末）.S_FA_ARTURN（Wind 已算好，月末截面取值）",
+    "wind_source": "AShareFinancialIndicator（按 ANN_DT PIT as-of 对齐月末）.S_FA_ARTURN"
+  },
+  {
+    "code": "CATURN",
+    "name_cn": "流动资产周转率",
+    "l1": "公司内生信息",
+    "l2": "运营效率",
+    "direction": 1,
+    "description": "营业总收入 / 平均流动资产。",
+    "formula": "流动资产周转率 = AShareFinancialIndicator（按 ANN_DT PIT as-of 对齐月末）.S_FA_CATURN（Wind 已算好，月末截面取值）",
+    "wind_source": "AShareFinancialIndicator（按 ANN_DT PIT as-of 对齐月末）.S_FA_CATURN"
+  },
+  {
+    "code": "FATURN",
+    "name_cn": "固定资产周转率",
+    "l1": "公司内生信息",
+    "l2": "运营效率",
+    "direction": 1,
+    "description": "营业总收入 / 平均固定资产；产能利用效率。",
+    "formula": "固定资产周转率 = AShareFinancialIndicator（按 ANN_DT PIT as-of 对齐月末）.S_FA_FATURN（Wind 已算好，月末截面取值）",
+    "wind_source": "AShareFinancialIndicator（按 ANN_DT PIT as-of 对齐月末）.S_FA_FATURN"
+  }
+]
