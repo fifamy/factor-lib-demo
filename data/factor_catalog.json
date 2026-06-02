@@ -44,7 +44,7 @@
     "description": "过去 21 个交易日换手率之和的对数。换手率 = 成交额 / 流通市值。",
     "formula": "STOM = ln( Σ_{过去 21 个交易日} turnover_d )\nturnover_d = 成交额 / 流通市值，流通市值 = 总市值 × (自由流通股本 / 总股本)。剔除停牌日（成交额=0）。",
     "wind_source": "AShareEODPrices.S_DQ_AMOUNT（成交额）、AShareEODDerivativeIndicator.S_DQ_MV（总市值）、FREE_SHARES_TODAY（自由流通股本）、TOT_SHR_TODAY（总股本）",
-    "env_tag": "熊市防御型",
+    "env_tag": "全天候型",
     "time_tag": "近期失效"
   },
   {
@@ -176,7 +176,7 @@
     "description": "ROIC = NOPAT / 平均投入资本；投入资本回报。",
     "formula": "投入资本回报率 = PITFinancialFactor（PIT，无未来函数）.S_DFA_ROIC_TTM（Wind 已算好，月末截面取值）",
     "wind_source": "PITFinancialFactor（PIT，无未来函数）.S_DFA_ROIC_TTM",
-    "env_tag": "牛市进攻型",
+    "env_tag": "全天候型",
     "time_tag": "长期稳定型"
   },
   {
@@ -440,7 +440,7 @@
     "description": "已获利息倍数 = EBIT / 利息费用；偿付利息的能力，越高越安全。",
     "formula": "利息保障倍数 = AShareFinancialIndicator（按 ANN_DT PIT as-of 对齐月末）.S_FA_EBITTOINTEREST（Wind 已算好，月末截面取值）",
     "wind_source": "AShareFinancialIndicator（按 ANN_DT PIT as-of 对齐月末）.S_FA_EBITTOINTEREST",
-    "env_tag": "牛市进攻型",
+    "env_tag": "全天候型",
     "time_tag": "持续低效"
   },
   {
@@ -476,7 +476,7 @@
     "description": "经营活动现金流净额 / 负债合计；偿债的现金保障。",
     "formula": "现金流负债比 = AShareFinancialIndicator（按 ANN_DT PIT as-of 对齐月末）.S_FA_OCFTODEBT（Wind 已算好，月末截面取值）",
     "wind_source": "AShareFinancialIndicator（按 ANN_DT PIT as-of 对齐月末）.S_FA_OCFTODEBT",
-    "env_tag": "震荡占优型",
+    "env_tag": "全天候型",
     "time_tag": "长期稳定型"
   },
   {
@@ -500,7 +500,7 @@
     "description": "营业总收入 / 平均总资产；资产运用效率。",
     "formula": "总资产周转率 = AShareFinancialIndicator（按 ANN_DT PIT as-of 对齐月末）.S_FA_ASSETSTURN（Wind 已算好，月末截面取值）",
     "wind_source": "AShareFinancialIndicator（按 ANN_DT PIT as-of 对齐月末）.S_FA_ASSETSTURN",
-    "env_tag": "牛市进攻型",
+    "env_tag": "全天候型",
     "time_tag": "持续低效"
   },
   {
@@ -548,7 +548,7 @@
     "description": "营业总收入 / 平均固定资产；产能利用效率。",
     "formula": "固定资产周转率 = AShareFinancialIndicator（按 ANN_DT PIT as-of 对齐月末）.S_FA_FATURN（Wind 已算好，月末截面取值）",
     "wind_source": "AShareFinancialIndicator（按 ANN_DT PIT as-of 对齐月末）.S_FA_FATURN",
-    "env_tag": "牛市进攻型",
+    "env_tag": "全天候型",
     "time_tag": "长期稳定型"
   },
   {
@@ -668,7 +668,7 @@
     "description": "近 252 日日收益峰度；峰度高=极端波动多，方向负。",
     "formula": "",
     "wind_source": "",
-    "env_tag": "牛市进攻型",
+    "env_tag": "震荡占优型",
     "time_tag": "长期稳定型"
   },
   {
@@ -752,7 +752,7 @@
     "description": "近 60 日上涨日成交额占比：上涨日成交额 / 总成交额；过高=放量追涨，方向负。",
     "formula": "",
     "wind_source": "",
-    "env_tag": "熊市防御型",
+    "env_tag": "全天候型",
     "time_tag": "近期失效"
   },
   {
@@ -764,7 +764,7 @@
     "description": "异常换手率：近 5 日均换手 / 近 60 日均换手 − 1；骤升=短期拥挤，方向负。",
     "formula": "",
     "wind_source": "",
-    "env_tag": "震荡占优型",
+    "env_tag": "全天候型",
     "time_tag": "长期稳定型"
   },
   {
@@ -884,7 +884,7 @@
     "description": "股东户数月度变化率；户数减少=筹码集中(通常利好)，方向负。",
     "formula": "股东户数变化 = AShareHolderNumber（ANN_DT PIT 对齐）.S_HOLDER_NUM（月度变化率）",
     "wind_source": "AShareHolderNumber（ANN_DT PIT 对齐）.S_HOLDER_NUM",
-    "env_tag": "震荡占优型",
+    "env_tag": "全天候型",
     "time_tag": "长期稳定型"
   },
   {
@@ -910,5 +910,41 @@
     "wind_source": "AShareHolderNumber + price_panel（户均流通股，本地算）.PER_HOLDER",
     "env_tag": "震荡占优型",
     "time_tag": "长期稳定型"
+  },
+  {
+    "code": "GRCAGR3Y",
+    "name_cn": "营收3年复合增速",
+    "l1": "公司内生信息",
+    "l2": "成长",
+    "direction": 1,
+    "description": "营业总收入(TTM) 近3年复合年增速 = (今值/36月前值)^(1/3) − 1；持续高成长。",
+    "formula": "营业总收入(TTM) 近3年复合年增速 = (今值/36月前值)^(1/3) − 1；持续高成长。",
+    "wind_source": "派生（已有数据计算）",
+    "env_tag": "全天候型",
+    "time_tag": "近期转强"
+  },
+  {
+    "code": "PBPCTL",
+    "name_cn": "PB历史分位",
+    "l1": "公司内生信息",
+    "l2": "估值",
+    "direction": -1,
+    "description": "市净率 PB 在自身过去36个月的分位（0~1）；分位越低=相对自身越便宜，方向负。",
+    "formula": "市净率 PB 在自身过去36个月的分位（0~1）；分位越低=相对自身越便宜，方向负。",
+    "wind_source": "派生（已有数据计算）",
+    "env_tag": "牛市进攻型",
+    "time_tag": "近期失效"
+  },
+  {
+    "code": "RELRET60",
+    "name_cn": "相对市场收益",
+    "l1": "市场交易信息",
+    "l2": "动量",
+    "direction": 1,
+    "description": "个股近60交易日收益 − 全市场中位收益；跑赢大盘的相对强度。",
+    "formula": "个股近60交易日收益 − 全市场中位收益；跑赢大盘的相对强度。",
+    "wind_source": "派生（已有数据计算）",
+    "env_tag": "全天候型",
+    "time_tag": "近期失效"
   }
 ]
