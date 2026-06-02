@@ -668,7 +668,7 @@
     "description": "近 252 日日收益峰度；峰度高=极端波动多，方向负。",
     "formula": "",
     "wind_source": "",
-    "env_tag": "震荡占优型",
+    "env_tag": "牛市进攻型",
     "time_tag": "长期稳定型"
   },
   {
@@ -884,6 +884,30 @@
     "description": "股东户数月度变化率；户数减少=筹码集中(通常利好)，方向负。",
     "formula": "股东户数变化 = AShareHolderNumber（ANN_DT PIT 对齐）.S_HOLDER_NUM（月度变化率）",
     "wind_source": "AShareHolderNumber（ANN_DT PIT 对齐）.S_HOLDER_NUM",
+    "env_tag": "震荡占优型",
+    "time_tag": "长期稳定型"
+  },
+  {
+    "code": "HOLDERCONC",
+    "name_cn": "户均持股(集中度)",
+    "l1": "投资者行为信息",
+    "l2": "筹码结构",
+    "direction": 1,
+    "description": "户均流通股 = 流通股本 / 股东户数；越高=散户越少、筹码越集中，正向。",
+    "formula": "户均持股(集中度) = AShareHolderNumber + price_panel（户均流通股，本地算）.PER_HOLDER（当月值）",
+    "wind_source": "AShareHolderNumber + price_panel（户均流通股，本地算）.PER_HOLDER",
+    "env_tag": "全天候型",
+    "time_tag": "近期失效"
+  },
+  {
+    "code": "HOLDERCONCCHG",
+    "name_cn": "筹码集中度变化",
+    "l1": "投资者行为信息",
+    "l2": "筹码结构",
+    "direction": 1,
+    "description": "户均持股的月度变化率；上升=筹码进一步集中，正向。",
+    "formula": "筹码集中度变化 = AShareHolderNumber + price_panel（户均流通股，本地算）.PER_HOLDER（月度变化率）",
+    "wind_source": "AShareHolderNumber + price_panel（户均流通股，本地算）.PER_HOLDER",
     "env_tag": "震荡占优型",
     "time_tag": "长期稳定型"
   }
