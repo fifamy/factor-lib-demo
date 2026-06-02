@@ -44,7 +44,7 @@
     "description": "过去 21 个交易日换手率之和的对数。换手率 = 成交额 / 流通市值。",
     "formula": "STOM = ln( Σ_{过去 21 个交易日} turnover_d )\nturnover_d = 成交额 / 流通市值，流通市值 = 总市值 × (自由流通股本 / 总股本)。剔除停牌日（成交额=0）。",
     "wind_source": "AShareEODPrices.S_DQ_AMOUNT（成交额）、AShareEODDerivativeIndicator.S_DQ_MV（总市值）、FREE_SHARES_TODAY（自由流通股本）、TOT_SHR_TODAY（总股本）",
-    "env_tag": "全天候型",
+    "env_tag": "熊市防御型",
     "time_tag": "近期失效"
   },
   {
@@ -248,7 +248,7 @@
     "description": "营业利润 TTM 同比增速。",
     "formula": "营业利润同比 = PITFinancialFactor（PIT，无未来函数）.S_DFA_TTMGROWRATE_OP（Wind 已算好，月末截面取值）",
     "wind_source": "PITFinancialFactor（PIT，无未来函数）.S_DFA_TTMGROWRATE_OP",
-    "env_tag": "震荡占优型",
+    "env_tag": "全天候型",
     "time_tag": "持续低效"
   },
   {
@@ -548,7 +548,7 @@
     "description": "营业总收入 / 平均固定资产；产能利用效率。",
     "formula": "固定资产周转率 = AShareFinancialIndicator（按 ANN_DT PIT as-of 对齐月末）.S_FA_FATURN（Wind 已算好，月末截面取值）",
     "wind_source": "AShareFinancialIndicator（按 ANN_DT PIT as-of 对齐月末）.S_FA_FATURN",
-    "env_tag": "全天候型",
+    "env_tag": "牛市进攻型",
     "time_tag": "长期稳定型"
   },
   {
@@ -752,7 +752,7 @@
     "description": "近 60 日上涨日成交额占比：上涨日成交额 / 总成交额；过高=放量追涨，方向负。",
     "formula": "",
     "wind_source": "",
-    "env_tag": "全天候型",
+    "env_tag": "熊市防御型",
     "time_tag": "近期失效"
   },
   {
@@ -764,6 +764,126 @@
     "description": "异常换手率：近 5 日均换手 / 近 60 日均换手 − 1；骤升=短期拥挤，方向负。",
     "formula": "",
     "wind_source": "",
+    "env_tag": "震荡占优型",
+    "time_tag": "长期稳定型"
+  },
+  {
+    "code": "NPFCST1M",
+    "name_cn": "净利预期上修(1M)",
+    "l1": "投资者行为信息",
+    "l2": "分析师预期",
+    "direction": 1,
+    "description": "一致预测净利润(未来12月)近1个月的变化率；上修=分析师看好，正向。",
+    "formula": "净利预期上修(1M) = ConsensusExpectationFactor.S_WEST_NETPROFIT_FTM_1M（当月值）",
+    "wind_source": "ConsensusExpectationFactor.S_WEST_NETPROFIT_FTM_1M",
+    "env_tag": "震荡占优型",
+    "time_tag": "近期转强"
+  },
+  {
+    "code": "NPFCST3M",
+    "name_cn": "净利预期上修(3M)",
+    "l1": "投资者行为信息",
+    "l2": "分析师预期",
+    "direction": 1,
+    "description": "一致预测净利润(未来12月)近3个月的变化率。",
+    "formula": "净利预期上修(3M) = ConsensusExpectationFactor.S_WEST_NETPROFIT_FTM_3M（当月值）",
+    "wind_source": "ConsensusExpectationFactor.S_WEST_NETPROFIT_FTM_3M",
+    "env_tag": "震荡占优型",
+    "time_tag": "长期稳定型"
+  },
+  {
+    "code": "EPSFCST1M",
+    "name_cn": "EPS预期上修(1M)",
+    "l1": "投资者行为信息",
+    "l2": "分析师预期",
+    "direction": 1,
+    "description": "一致预测每股收益(FY1)近1个月的变化率。",
+    "formula": "EPS预期上修(1M) = ConsensusExpectationFactor.S_WEST_EPS_FY1_1M（当月值）",
+    "wind_source": "ConsensusExpectationFactor.S_WEST_EPS_FY1_1M",
+    "env_tag": "全天候型",
+    "time_tag": "长期稳定型"
+  },
+  {
+    "code": "SALESFCST1M",
+    "name_cn": "营收预期上修(1M)",
+    "l1": "投资者行为信息",
+    "l2": "分析师预期",
+    "direction": 1,
+    "description": "一致预测营业收入(未来12月)近1个月的变化率。",
+    "formula": "营收预期上修(1M) = ConsensusExpectationFactor.S_WEST_SALES_FTM_1M（当月值）",
+    "wind_source": "ConsensusExpectationFactor.S_WEST_SALES_FTM_1M",
+    "env_tag": "全天候型",
+    "time_tag": "近期转强"
+  },
+  {
+    "code": "FCSTGROWTH",
+    "name_cn": "预期成长",
+    "l1": "投资者行为信息",
+    "l2": "分析师预期",
+    "direction": 1,
+    "description": "一致预测 FY2/FY1 每股收益增速预期；预期成长越高越好。",
+    "formula": "预期成长 = ConsensusExpectationFactor.S_WEST_EPS_FYGROWTH（当月值）",
+    "wind_source": "ConsensusExpectationFactor.S_WEST_EPS_FYGROWTH",
+    "env_tag": "熊市防御型",
+    "time_tag": "近期转强"
+  },
+  {
+    "code": "FCSTDISP",
+    "name_cn": "盈利预测分歧度",
+    "l1": "投资者行为信息",
+    "l2": "分析师预期",
+    "direction": -1,
+    "description": "一致预测 EPS(FY1) 的标准差；分歧越大不确定性越高，方向负。",
+    "formula": "盈利预测分歧度 = ConsensusExpectationFactor.S_WEST_STDEPS_FY1（当月值）",
+    "wind_source": "ConsensusExpectationFactor.S_WEST_STDEPS_FY1",
+    "env_tag": "震荡占优型",
+    "time_tag": "近期失效"
+  },
+  {
+    "code": "MAINFLOW",
+    "name_cn": "主力净流入强度",
+    "l1": "投资者行为信息",
+    "l2": "资金流",
+    "direction": 1,
+    "description": "近20交易日(机构+大户)净流入 / 近20日总成交额；主力资金净买入越强越好。",
+    "formula": "主力净流入强度 = AShareMoneyFlow（日频→近20日聚合）.MAINFORCE_NET_RATIO（当月值）",
+    "wind_source": "AShareMoneyFlow（日频→近20日聚合）.MAINFORCE_NET_RATIO",
+    "env_tag": "震荡占优型",
+    "time_tag": "长期稳定型"
+  },
+  {
+    "code": "NBRATIO",
+    "name_cn": "北向持股占比",
+    "l1": "投资者行为信息",
+    "l2": "资金流",
+    "direction": 1,
+    "description": "陆股通(北向)持股占流通股比例；外资偏好，仅覆盖陆股通标的。",
+    "formula": "北向持股占比 = SHSCChannelholdings（陆股通持股）.S_RATIO（当月值）",
+    "wind_source": "SHSCChannelholdings（陆股通持股）.S_RATIO",
+    "env_tag": "全天候型",
+    "time_tag": "长期稳定型"
+  },
+  {
+    "code": "NBHOLDCHG",
+    "name_cn": "北向持股变化",
+    "l1": "投资者行为信息",
+    "l2": "资金流",
+    "direction": 1,
+    "description": "北向持股占比的月度变化(本月−上月，百分点)；北向净增持，正向。",
+    "formula": "北向持股变化 = SHSCChannelholdings（陆股通持股）.S_RATIO（月度差分）",
+    "wind_source": "SHSCChannelholdings（陆股通持股）.S_RATIO",
+    "env_tag": "全天候型",
+    "time_tag": "长期稳定型"
+  },
+  {
+    "code": "HOLDERCHG",
+    "name_cn": "股东户数变化",
+    "l1": "投资者行为信息",
+    "l2": "筹码结构",
+    "direction": -1,
+    "description": "股东户数月度变化率；户数减少=筹码集中(通常利好)，方向负。",
+    "formula": "股东户数变化 = AShareHolderNumber（ANN_DT PIT 对齐）.S_HOLDER_NUM（月度变化率）",
+    "wind_source": "AShareHolderNumber（ANN_DT PIT 对齐）.S_HOLDER_NUM",
     "env_tag": "震荡占优型",
     "time_tag": "长期稳定型"
   }
